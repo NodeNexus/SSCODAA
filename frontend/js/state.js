@@ -148,6 +148,23 @@ function fmtPrice(n) {
   return '₹' + Number(n).toLocaleString('en-IN');
 }
 
+function escapeHTML(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function safeProductImage(value) {
+  const url = String(value ?? '');
+  if (/^https?:\/\//i.test(url) || url.startsWith('data:image/')) {
+    return escapeHTML(url);
+  }
+  return 'https://placehold.co/400x400';
+}
+
 // ── Platform display info ─────────────────────────────────
 const PLAT = {
   amazon:   { label:'Amazon',   color:'#FF9900', cls:'amazon'   },
@@ -174,6 +191,8 @@ function getDisplayPrice(product, platformContext = null) {
   return { price: best, platform: bestPlatform };
 }
 
+const getBestPrice = getDisplayPrice;
+
 // ── Product Card HTML ─────────────────────────────────────
 function productCardHTML(product, platformContext = null) {
   const { price: displayPrice, platform: displayPlatform } = getDisplayPrice(product, platformContext);
@@ -183,6 +202,11 @@ function productCardHTML(product, platformContext = null) {
   const amazonP   = product.platforms.amazon;
   const amazonEff = amazonP?.available ? amazonP.price + amazonP.deliveryCost : null;
   const savings   = amazonEff && amazonEff > displayPrice ? amazonEff - displayPrice : 0;
+  const productName = escapeHTML(product.name);
+  const productCategory = escapeHTML(product.category);
+  const productImage = safeProductImage(product.image);
+  const fallbackText = encodeURIComponent(String(product.name ?? '').slice(0, 6));
+  const productId = Number.parseInt(product.id, 10) || 0;
 
   const availPlatforms = Object.entries(product.platforms)
     .filter(([, p]) => p.available)
@@ -194,23 +218,23 @@ function productCardHTML(product, platformContext = null) {
     ).join('');
 
   return `
-  <div class="card prod-card fade-in" data-id="${product.id}">
+  <div class="card prod-card fade-in" data-id="${productId}">
     <div class="prod-thumb">
-      <img src="${product.image}" alt="${product.name}"
-           onerror="this.src='https://placehold.co/200x140/1a1a35/6366f1?text=${encodeURIComponent(product.name.slice(0,6))}'" />
+      <img src="${productImage}" alt="${productName}"
+           onerror="this.src='https://placehold.co/200x140/1a1a35/6366f1?text=${fallbackText}'" />
       <div class="prod-plat-badge badge-${pi.cls}"
            style="color:${pi.color};border-color:${pi.color}40;background:${pi.color}18">
         ${pi.label}
       </div>
       <button class="prod-compare-btn ${inCompare ? 'active' : ''}"
-              onclick="toggleCompare(${product.id})" title="Compare">
+              onclick="toggleCompare(${productId})" title="Compare">
         ${inCompare ? '✓ Compare' : '⚖️ Compare'}
       </button>
       ${savings > 0 ? `<div class="prod-save">Save ${fmtPrice(savings)}</div>` : ''}
     </div>
     <div class="prod-body">
-      <div class="prod-cat">${product.category}</div>
-      <a href="/products#${product.id}" class="prod-name">${product.name}</a>
+      <div class="prod-cat">${productCategory}</div>
+      <a href="/products#${productId}" class="prod-name">${productName}</a>
       <div style="display:flex;align-items:center;gap:.5rem">
         ${starHTML(product.rating)}
         <span style="font-size:.76rem;color:var(--text-3)">
@@ -227,10 +251,10 @@ function productCardHTML(product, platformContext = null) {
       </div>
       <div class="prod-actions">
         <button class="btn ${inCart ? 'btn-ghost' : 'btn-primary'}"
-                onclick="toggleCart(${product.id})">
+                onclick="toggleCart(${productId})">
           ${inCart ? '✓ In Cart' : '🛒 Add to Cart'}
         </button>
-        <a href="/products#detail-${product.id}" class="prod-view-btn">👁️</a>
+        <a href="/products#detail-${productId}" class="prod-view-btn">👁️</a>
       </div>
     </div>
   </div>`;
