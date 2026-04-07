@@ -41,14 +41,16 @@ def load_cache():
         try:
             with open(CACHE_FILE, "r", encoding="utf-8") as f:
                 return json.load(f)
-        except: return {}
+        except (OSError, json.JSONDecodeError):
+            return {}
     return {}
 
 def save_cache(cache_data):
     try:
         with open(CACHE_FILE, "w", encoding="utf-8") as f:
             json.dump(cache_data, f, ensure_ascii=False)
-    except: pass
+    except OSError:
+        pass
 
 SCRAPE_CACHE = load_cache()
 
@@ -62,6 +64,13 @@ def get_cached_or_scrape(q):
         SCRAPE_CACHE[q] = res
         save_cache(SCRAPE_CACHE)
     return res
+
+def parse_positive_int(value, default=None):
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return default
+    return parsed if parsed > 0 else default
 
 # ── Cart Optimizer ─────────────────────────────────────────────────
 
@@ -197,10 +206,13 @@ class SSCOHandler(SimpleHTTPRequestHandler):
 
     # ── Read POST body ──────────────────────────────────────────
     def _read_json_body(self):
-        length = int(self.headers.get("Content-Length", 0))
+        length = parse_positive_int(self.headers.get("Content-Length", 0), 0)
         if length:
             raw = self.rfile.read(length)
-            return json.loads(raw.decode("utf-8"))
+            try:
+                return json.loads(raw.decode("utf-8"))
+            except (UnicodeDecodeError, json.JSONDecodeError):
+                return {}
         return {}
 
     # ── Route: GET /api/products ────────────────────────────────
@@ -257,7 +269,8 @@ class SSCOHandler(SimpleHTTPRequestHandler):
 
     # ── Route: GET /api/products/<id> ───────────────────────────
     def _api_get_product(self, pid):
-        product = LIVE_CACHE.get(int(pid))
+        product_id = parse_positive_int(pid)
+        product = LIVE_CACHE.get(product_id) if product_id is not None else None
         if not product:
             self._json({"error": "Product not found"}, 404)
         else:
@@ -324,26 +337,34 @@ class SSCOHandler(SimpleHTTPRequestHandler):
         cart_item_ids = body.get("cartItemIds", [])
         budget        = body.get("budget")
 
-        cart_items = [LIVE_CACHE[int(i)] for i in cart_item_ids if int(i) in LIVE_CACHE]
+        cart_items = [
+            LIVE_CACHE[product_id]
+            for product_id in (parse_positive_int(i) for i in cart_item_ids)
+            if product_id in LIVE_CACHE
+        ]
         if not cart_items:
             self._json({"error": "No valid products in cart"}, 400)
             return
 
-        result = optimize_cart(cart_items, int(budget) if budget else None)
+        result = optimize_cart(cart_items, parse_positive_int(budget))
         self._json(result)
 
     # ── POST: /api/optimize/greedy ──────────────────────────────
     def _api_post_greedy(self):
         body          = self._read_json_body()
         cart_item_ids = body.get("cartItemIds", [])
-        cart_items    = [LIVE_CACHE[int(i)] for i in cart_item_ids if int(i) in LIVE_CACHE]
+        cart_items = [
+            LIVE_CACHE[product_id]
+            for product_id in (parse_positive_int(i) for i in cart_item_ids)
+            if product_id in LIVE_CACHE
+        ]
         self._json(greedy_cheapest_platform(cart_items))
 
     # ── POST: /api/optimize/knapsack ────────────────────────────
     def _api_post_knapsack(self):
         body   = self._read_json_body()
-        budget = body.get("budget", 100000)
-        self._json(fractional_knapsack(list(LIVE_CACHE.values()), int(budget)))
+        budget = parse_positive_int(body.get("budget"), 100000)
+        self._json(fractional_knapsack(list(LIVE_CACHE.values()), budget))
 
     # ── GET routing ─────────────────────────────────────────────
     def do_GET(self):

@@ -1,6 +1,7 @@
 from playwright.sync_api import sync_playwright
 import urllib.parse
 import random
+import hashlib
 
 def search_live_products(query="laptop"):
     """
@@ -9,6 +10,7 @@ def search_live_products(query="laptop"):
     Provides 100% genuine real-time internet data.
     """
     live_products = []
+    normalized_query = (query or "laptop").strip() or "laptop"
     
     with sync_playwright() as p:
         # We must disable sandbox for Render / Docker environments
@@ -22,7 +24,7 @@ def search_live_products(query="laptop"):
         )
         page = context.new_page()
         
-        encoded_query = urllib.parse.quote(query)
+        encoded_query = urllib.parse.quote(normalized_query)
         url = f"https://www.flipkart.com/search?q={encoded_query}"
         
         try:
@@ -38,7 +40,7 @@ def search_live_products(query="laptop"):
             try:
                 items.first.wait_for(timeout=8000)
                 count = items.count()
-            except:
+            except Exception:
                 count = 0
 
             # Reduce number of items from 12 to 8 to save processing time on Render
@@ -53,6 +55,7 @@ def search_live_products(query="laptop"):
                 title = raw_text.split("₹")[0][:80].strip()
                 title = title.replace("Add to Compare", "").replace("Currently unavailable", "").strip()
                 if len(title) < 5: continue
+                fallback_rng = random.Random(f"{normalized_query}|{title}|{i}|price")
                 
                 # Price extraction
                 price_el = item.locator('div.Nx9bqj').first
@@ -60,49 +63,51 @@ def search_live_products(query="laptop"):
                     price_text = price_el.text_content().replace('₹', '').replace(',', '').strip()
                     try:
                         base_price = int(price_text)
-                    except:
-                        base_price = random.randint(5000, 50000)
+                    except ValueError:
+                        base_price = fallback_rng.randint(5000, 50000)
                 else:
-                    base_price = random.randint(5000, 50000)
+                    base_price = fallback_rng.randint(5000, 50000)
                     
                 # Image
                 img_el = item.locator('img').first
                 image_url = img_el.get_attribute('src') if img_el.count() > 0 else "https://placehold.co/400x400"
                 
-                product_id = hash(title + str(i)) % 999999
+                digest = hashlib.sha256(f"{normalized_query}|{title}|{i}".encode("utf-8")).hexdigest()
+                product_id = int(digest[:12], 16) % 999999
+                rng = random.Random(digest)
                 
                 live_products.append({
                     "id": product_id,
                     "name": title,
-                    "category": query.title(),
+                    "category": normalized_query.title(),
                     "image": image_url,
-                    "rating": round(random.uniform(4.0, 4.8), 1),
-                    "reviewCount": random.randint(100, 10000),
+                    "rating": round(rng.uniform(4.0, 4.8), 1),
+                    "reviewCount": rng.randint(100, 10000),
                     "platforms": {
                         "amazon": {
-                            "price": int(base_price * random.uniform(0.98, 1.02)),
+                            "price": int(base_price * rng.uniform(0.98, 1.02)),
                             "available": True,
-                            "deliveryCost": random.choice([0, 0, 40])
+                            "deliveryCost": rng.choice([0, 0, 40])
                         },
                         "flipkart": {
                             "price": base_price,
                             "available": True,
-                            "deliveryCost": random.choice([0, 40, 60])
+                            "deliveryCost": rng.choice([0, 40, 60])
                         },
                         "meesho": {
-                            "price": int(base_price * random.uniform(0.90, 0.96)),
-                            "available": random.random() > 0.1,
-                            "deliveryCost": random.choice([49, 69, 89])
+                            "price": int(base_price * rng.uniform(0.90, 0.96)),
+                            "available": rng.random() > 0.1,
+                            "deliveryCost": rng.choice([49, 69, 89])
                         },
                         "snapdeal": {
-                            "price": int(base_price * random.uniform(0.94, 1.04)),
-                            "available": random.random() > 0.2,
-                            "deliveryCost": random.choice([0, 49, 99])
+                            "price": int(base_price * rng.uniform(0.94, 1.04)),
+                            "available": rng.random() > 0.2,
+                            "deliveryCost": rng.choice([0, 49, 99])
                         },
                         "myntra": {
-                            "price": int(base_price * random.uniform(1.01, 1.06)),
-                            "available": random.random() > 0.3,
-                            "deliveryCost": random.choice([0, 99])
+                            "price": int(base_price * rng.uniform(1.01, 1.06)),
+                            "available": rng.random() > 0.3,
+                            "deliveryCost": rng.choice([0, 99])
                         }
                     }
                 })
