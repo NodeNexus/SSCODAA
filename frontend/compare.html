@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Compare Products — SSCO</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚖️</text></svg>"/>
+  <link rel="stylesheet" href="/css/style.css"/>
+</head>
+<body>
+<div id="navbar"></div>
+
+<div class="page">
+  <h1 class="section-title">⚖️ Product Comparison</h1>
+  <p class="section-sub" id="compare-sub" style="margin-bottom:1.5rem">Click ⚖️ Compare on any product card to add it here</p>
+
+  <div id="empty-compare" class="card" style="padding:4rem;text-align:center">
+    <div style="font-size:4rem;margin-bottom:1rem">⚖️</div>
+    <h2 style="color:var(--text-2);margin-bottom:.5rem">Nothing to compare yet</h2>
+    <p style="color:var(--text-3);font-size:.88rem;margin-bottom:1.5rem">
+      Browse products and click "⚖️ Compare" to add up to 3 items here.
+    </p>
+    <a href="/products" class="btn btn-primary">Browse Products →</a>
+  </div>
+
+  <div id="compare-content" style="display:none">
+    <!-- Product header cards -->
+    <div id="compare-headers" style="display:grid;gap:1rem;margin-bottom:1.5rem"></div>
+
+    <!-- Specs table -->
+    <div class="card" style="padding:1.5rem;margin-bottom:1.5rem" id="specs-table">
+      <h2 style="font-family:'Space Grotesk',sans-serif;font-size:1.25rem;font-weight:700;color:var(--text);margin-bottom:1.25rem">
+        📊 Detailed Comparison
+      </h2>
+      <div id="specs-rows"></div>
+    </div>
+
+    <!-- Price chart SVG -->
+    <div class="card" style="padding:1.5rem;margin-bottom:1.5rem">
+      <h2 style="font-family:'Space Grotesk',sans-serif;font-size:1.25rem;font-weight:700;color:var(--text);margin-bottom:.5rem">
+        📈 Price Across Platforms
+      </h2>
+      <p style="color:var(--text-3);font-size:.82rem;margin-bottom:1.25rem">Effective price (incl. delivery) across all 5 platforms</p>
+      <div id="price-chart"></div>
+      <div id="chart-legend" style="display:flex;gap:1.5rem;margin-top:.75rem;flex-wrap:wrap"></div>
+    </div>
+  </div>
+</div>
+
+<footer><p>🛒 Smart Shopping Cart Optimizer — DAA Project</p></footer>
+
+<script src="/js/state.js?v=2"></script>
+<script>
+  renderNavbar('compare');
+
+  const COLORS = ['#6366f1','#f43f5e','#fbbf24'];
+
+  function render() {
+    const items = STATE.getCompare();
+    document.getElementById('compare-sub').textContent =
+      `${items.length} product${items.length!==1?'s':''} selected`;
+
+    const empty   = document.getElementById('empty-compare');
+    const content = document.getElementById('compare-content');
+
+    if (items.length === 0) {
+      empty.style.display   = 'block';
+      content.style.display = 'none';
+      return;
+    }
+
+    empty.style.display   = 'none';
+    content.style.display = 'block';
+
+    const n = items.length;
+
+    // Headers
+    document.getElementById('compare-headers').style.gridTemplateColumns = `repeat(${n},1fr)`;
+    document.getElementById('compare-headers').innerHTML = items.map((product, idx) => {
+      const bestPrice = Math.min(
+        ...Object.values(product.platforms).filter(p=>p.available).map(p=>p.price+p.deliveryCost)
+      );
+      return `
+        <div class="card" style="padding:1.25rem;position:relative">
+          <button onclick="removeCompare(${product.id})" style="
+            position:absolute;top:10px;right:10px;background:rgba(239,68,68,.1);
+            border:1px solid rgba(239,68,68,.2);color:var(--red);border-radius:8px;
+            padding:.2rem .5rem;cursor:pointer;font-size:.73rem">✕</button>
+          <div style="height:110px;display:flex;align-items:center;justify-content:center;
+               background:#111128;border-radius:10px;margin-bottom:1rem;overflow:hidden">
+            <img src="${product.image}" alt="${product.name}" style="max-height:95px;max-width:100%;object-fit:contain"
+                 onerror="this.src='https://placehold.co/100x95/1a1a35/6366f1?text=${encodeURIComponent(product.name.slice(0,4))}'"/>
+          </div>
+          <div style="font-size:.7rem;color:${COLORS[idx]};font-weight:700;margin-bottom:.25rem">● Product ${idx+1}</div>
+          <h3 style="color:var(--text);font-weight:700;font-size:.92rem;margin-bottom:.5rem;line-height:1.35">${product.name}</h3>
+          <div style="font-size:1.35rem;font-weight:800;color:var(--text);font-family:'Space Grotesk',sans-serif">
+            ${fmtPrice(bestPrice)}
+          </div>
+          <div style="font-size:.73rem;color:var(--text-3);margin-top:.25rem">Best across all platforms</div>
+        </div>`;
+    }).join('');
+
+    // Specs rows
+    const rowData = [
+      { label:'Category', get: p => p.category },
+      { label:'Rating',   get: p => `${starHTML(p.rating)} ${p.rating}/5` },
+      { label:'Reviews',  get: p => p.reviewCount.toLocaleString('en-IN') },
+      ...Object.keys(PLAT).map(plName => ({
+        label: PLAT[plName].label,
+        labelStyle: `color:${PLAT[plName].color}`,
+        get: p => {
+          const pl = p.platforms[plName];
+          return pl?.available
+            ? `<span style="color:var(--text-2)">${fmtPrice(pl.price + pl.deliveryCost)}</span>${pl.deliveryCost>0?` <span style="color:var(--text-3);font-size:.75em">+${fmtPrice(pl.deliveryCost)} delivery</span>`:''}`
+            : `<span style="color:var(--text-3)">Unavailable</span>`;
+        }
+      }))
+    ];
+
+    document.getElementById('specs-rows').innerHTML = rowData.map(row => `
+      <div style="display:grid;grid-template-columns:140px repeat(${n},1fr);gap:1rem;padding:.65rem 0;border-bottom:1px solid rgba(99,102,241,.08);align-items:center">
+        <div style="color:var(--text-3);font-size:.81rem;font-weight:600;${row.labelStyle||''}">${row.label}</div>
+        ${items.map(p => `<div style="font-size:.82rem">${row.get(p)}</div>`).join('')}
+      </div>`).join('');
+
+    // Price chart (SVG)
+    drawPriceChart(items);
+
+    // Legend
+    document.getElementById('chart-legend').innerHTML = items.map((p,i) =>
+      `<span style="font-size:.8rem;color:${COLORS[i]}">● ${p.name.slice(0,20)}</span>`
+    ).join('');
+  }
+
+  function removeCompare(id) {
+    STATE.removeFromCompare(id);
+    render();
+  }
+
+  function drawPriceChart(items) {
+    const container = document.getElementById('price-chart');
+    const W = container.clientWidth || 700;
+    const H = 220, PAD_L = 70, PAD_R = 20, PAD_T = 15, PAD_B = 35;
+    const platforms = Object.keys(PLAT);
+
+    // Get all price values
+    const allVals = [];
+    items.forEach(item => {
+      platforms.forEach(p => {
+        const pl = item.platforms[p];
+        if (pl?.available) allVals.push(pl.price + pl.deliveryCost);
+      });
+    });
+
+    if (allVals.length === 0) { container.innerHTML = ''; return; }
+
+    const minV = Math.min(...allVals) * 0.97;
+    const maxV = Math.max(...allVals) * 1.02;
+
+    const toX = i => PAD_L + i * (W - PAD_L - PAD_R) / (platforms.length - 1);
+    const toY = v => PAD_T + (1 - (v - minV) / (maxV - minV)) * (H - PAD_T - PAD_B);
+
+    let svg = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:${H}px">`;
+
+    // Grid lines & y labels
+    for (let i = 0; i < 4; i++) {
+      const y = PAD_T + i * (H - PAD_T - PAD_B) / 3;
+      const v = maxV - i * (maxV - minV) / 3;
+      svg += `<line x1="${PAD_L}" y1="${y}" x2="${W - PAD_R}" y2="${y}" stroke="rgba(99,102,241,.08)" stroke-width="1"/>`;
+      svg += `<text x="${PAD_L - 6}" y="${y + 4}" text-anchor="end" fill="#475569" font-size="10">₹${(v/1000).toFixed(0)}K</text>`;
+    }
+
+    // X labels
+    platforms.forEach((p, i) => {
+      svg += `<text x="${toX(i)}" y="${H - 5}" text-anchor="middle" fill="#475569" font-size="10">${PLAT[p].label}</text>`;
+    });
+
+    // Lines per item
+    items.forEach((item, itemIdx) => {
+      const color = COLORS[itemIdx];
+      const pts = platforms
+        .map((p, i) => {
+          const pl = item.platforms[p];
+          return pl?.available ? `${toX(i)},${toY(pl.price + pl.deliveryCost)}` : null;
+        });
+
+      // Draw line segments (skip null)
+      let pathD = '';
+      pts.forEach((pt, i) => {
+        if (pt) pathD += (pathD ? ' L' : 'M') + pt;
+      });
+      if (pathD) svg += `<path d="${pathD}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>`;
+
+      // Dots
+      pts.forEach((pt, i) => {
+        if (pt) {
+          const [cx, cy] = pt.split(',');
+          svg += `<circle cx="${cx}" cy="${cy}" r="5" fill="${color}" stroke="${color}44" stroke-width="3"/>`;
+        }
+      });
+    });
+
+    svg += '</svg>';
+    container.innerHTML = svg;
+  }
+
+  STATE.on('compare', render);
+  render();
+</script>
+</body>
+</html>

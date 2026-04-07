@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <meta name="description" content="Smart Shopping Cart Optimizer - Compare prices across Amazon, Flipkart, Meesho & more using DAA algorithms."/>
+  <title>SSCO — Smart Shopping Cart Optimizer | DAA Project</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛒</text></svg>"/>
+  <link rel="stylesheet" href="/css/style.css"/>
+</head>
+<body>
+
+<div id="navbar"></div>
+
+<!-- ── Hero ──────────────────────────────────────── -->
+<section class="hero">
+  <div class="hero-blob" style="width:420px;height:420px;top:5%;left:2%;background:radial-gradient(circle,rgba(99,102,241,.13),transparent 70%)"></div>
+  <div class="hero-blob" style="width:350px;height:350px;bottom:8%;right:4%;background:radial-gradient(circle,rgba(167,139,250,.1),transparent 70%)"></div>
+
+  <div class="fade-in" style="margin-bottom:1.5rem">
+    <span class="chip" style="font-size:.78rem;font-weight:800;letter-spacing:.1em">
+      🎓 DAA PROJECT · MERGE SORT · GREEDY · DP · GRAPH
+    </span>
+  </div>
+
+  <h1 class="hero-title fade-in">
+    Smart Shopping<br>Cart Optimizer
+  </h1>
+
+  <p class="hero-sub fade-in">
+    Compare prices across <strong style="color:#a5b4fc">Amazon, Flipkart, Meesho, Snapdeal & Myntra</strong>.
+    Optimize your cart using <strong style="color:#a5b4fc">real DAA algorithms</strong> —
+    Merge Sort, Greedy, TSP via DP, and Kruskal's MST.
+  </p>
+
+  <form class="search-bar fade-in" onsubmit="doSearch(event)">
+    <div class="search-wrap">
+      <span style="margin-right:.5rem;color:var(--text-3);font-size:1.1rem">🔍</span>
+      <input id="hero-search" type="text" placeholder='Search: "iPhone", "Headphones", "Laptop"...'/>
+    </div>
+    <button type="submit" class="btn btn-primary" style="border-radius:14px;padding:.9rem 1.75rem;white-space:nowrap">
+      Search →
+    </button>
+  </form>
+
+  <div class="fade-in" style="display:flex;flex-wrap:wrap;gap:.5rem;justify-content:center">
+    <button class="chip" onclick="goCat('Smartphones')">📱 Smartphones</button>
+    <button class="chip" onclick="goCat('Laptops')">💻 Laptops</button>
+    <button class="chip" onclick="goCat('Audio')">🎧 Audio</button>
+    <button class="chip" onclick="goCat('TVs')">📺 TVs</button>
+    <button class="chip" onclick="goCat('Cameras')">📷 Cameras</button>
+    <button class="chip" onclick="goCat('Wearables')">⌚ Wearables</button>
+  </div>
+</section>
+
+<!-- ── Stats ───────────────────────────────────────── -->
+<section class="page" style="padding-top:0">
+  <div class="grid-2" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr))">
+    <div class="card fade-in" style="padding:1.5rem;text-align:center">
+      <div style="font-size:2rem;margin-bottom:.5rem">📦</div>
+      <div style="font-family:'Space Grotesk',sans-serif;font-size:2rem;font-weight:800">12+</div>
+      <div style="color:var(--text-3);font-size:.85rem">Products</div>
+    </div>
+    <div class="card fade-in" style="padding:1.5rem;text-align:center">
+      <div style="font-size:2rem;margin-bottom:.5rem">🏪</div>
+      <div style="font-family:'Space Grotesk',sans-serif;font-size:2rem;font-weight:800">5</div>
+      <div style="color:var(--text-3);font-size:.85rem">Platforms</div>
+    </div>
+    <div class="card fade-in" style="padding:1.5rem;text-align:center">
+      <div style="font-size:2rem;margin-bottom:.5rem">🧠</div>
+      <div style="font-family:'Space Grotesk',sans-serif;font-size:2rem;font-weight:800">4</div>
+      <div style="color:var(--text-3);font-size:.85rem">DAA Algorithms</div>
+    </div>
+    <div class="card fade-in" style="padding:1.5rem;text-align:center">
+      <div style="font-size:2rem;margin-bottom:.5rem">💰</div>
+      <div style="font-family:'Space Grotesk',sans-serif;font-size:2rem;font-weight:800">₹∞</div>
+      <div style="color:var(--text-3);font-size:.85rem">Potential Savings</div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Algorithm Feature Cards ────────────────────── -->
+<section class="page">
+  <div style="text-align:center;margin-bottom:2rem">
+    <h2 class="section-title">🧠 DAA Algorithms Powering This App</h2>
+    <p class="section-sub" style="max-width:600px;margin:0 auto">
+      Every feature is backed by a real algorithm from Design & Analysis of Algorithms.
+      See them in action on the Cart page.
+    </p>
+  </div>
+  <div class="grid-2">
+    <div class="card fade-in" style="padding:1.75rem">
+      <div style="font-size:2.2rem;margin-bottom:.75rem">📊</div>
+      <div class="algo-tag algo-dc" style="margin-bottom:.75rem">Divide &amp; Conquer</div>
+      <h3 style="font-family:'Space Grotesk',sans-serif;font-size:1.1rem;font-weight:700;color:var(--text);margin-bottom:.5rem">
+        Merge Sort
+      </h3>
+      <p style="color:var(--text-2);font-size:.86rem;line-height:1.65;margin-bottom:1rem">
+        Products sorted in O(n log n) using a manual Merge Sort implementation — no built-in sort() used for product ordering.
+      </p>
+      <code style="color:#6ee7b7;background:rgba(99,102,241,.08);padding:.2rem .6rem;border-radius:6px;font-size:.8rem">⏱ O(n log n)</code>
+    </div>
+    <div class="card fade-in" style="padding:1.75rem">
+      <div style="font-size:2.2rem;margin-bottom:.75rem">💡</div>
+      <div class="algo-tag algo-g" style="margin-bottom:.75rem">Greedy Algorithm</div>
+      <h3 style="font-family:'Space Grotesk',sans-serif;font-size:1.1rem;font-weight:700;color:var(--text);margin-bottom:.5rem">
+        Greedy + Fractional Knapsack
+      </h3>
+      <p style="color:var(--text-2);font-size:.86rem;line-height:1.65;margin-bottom:1rem">
+        Cheapest platform selection per item (O(n×P)) and Fractional Knapsack for budget-constrained optimization.
+      </p>
+      <code style="color:#6ee7b7;background:rgba(99,102,241,.08);padding:.2rem .6rem;border-radius:6px;font-size:.8rem">⏱ O(n × P)</code>
+    </div>
+    <div class="card fade-in" style="padding:1.75rem">
+      <div style="font-size:2.2rem;margin-bottom:.75rem">🗺️</div>
+      <div class="algo-tag algo-dp" style="margin-bottom:.75rem">Dynamic Programming</div>
+      <h3 style="font-family:'Space Grotesk',sans-serif;font-size:1.1rem;font-weight:700;color:var(--text);margin-bottom:.5rem">
+        TSP — Held-Karp Algorithm
+      </h3>
+      <p style="color:var(--text-2);font-size:.86rem;line-height:1.65;margin-bottom:1rem">
+        Bitmask DP finds the optimal platform visit ORDER to minimize logistics overhead when ordering from multiple platforms.
+      </p>
+      <code style="color:#6ee7b7;background:rgba(99,102,241,.08);padding:.2rem .6rem;border-radius:6px;font-size:.8rem">⏱ O(2ⁿ × n²)</code>
+    </div>
+    <div class="card fade-in" style="padding:1.75rem">
+      <div style="font-size:2.2rem;margin-bottom:.75rem">🕸️</div>
+      <div class="algo-tag algo-graph" style="margin-bottom:.75rem">Graph Algorithm</div>
+      <h3 style="font-family:'Space Grotesk',sans-serif;font-size:1.1rem;font-weight:700;color:var(--text);margin-bottom:.5rem">
+        Kruskal's MST + Union-Find
+      </h3>
+      <p style="color:var(--text-2);font-size:.86rem;line-height:1.65;margin-bottom:1rem">
+        Finds the minimum cost delivery network connecting all platforms using Union-Find with path compression + union by rank.
+      </p>
+      <code style="color:#6ee7b7;background:rgba(99,102,241,.08);padding:.2rem .6rem;border-radius:6px;font-size:.8rem">⏱ O(E log E)</code>
+    </div>
+  </div>
+</section>
+
+<!-- ── Price History Chart (SVG) ──────────────────── -->
+<section class="page">
+  <div class="card" style="padding:2rem">
+    <h2 style="font-family:'Space Grotesk',sans-serif;font-size:1.35rem;font-weight:700;color:var(--text);margin-bottom:.4rem">
+      📈 Price History — Samsung Galaxy S23 Ultra
+    </h2>
+    <p style="color:var(--text-3);font-size:.83rem;margin-bottom:1.5rem">8-week historical price tracking across platforms</p>
+    <div id="price-chart" style="width:100%;overflow:hidden"></div>
+    <div style="display:flex;gap:1.5rem;margin-top:.75rem;flex-wrap:wrap">
+      <span style="font-size:.8rem;color:#FF9900">● Amazon</span>
+      <span style="font-size:.8rem;color:#2874F0">● Flipkart</span>
+      <span style="font-size:.8rem;color:#f43f5e">● Meesho</span>
+    </div>
+  </div>
+</section>
+
+<!-- ── CTA ────────────────────────────────────────── -->
+<section style="text-align:center;padding:4rem 1.5rem">
+  <h2 style="font-family:'Space Grotesk',sans-serif;font-size:2rem;font-weight:800;color:var(--text);margin-bottom:1rem">
+    Ready to optimize your shopping? 🚀
+  </h2>
+  <p style="color:var(--text-2);margin-bottom:2rem">
+    Browse products, add to cart, and let DAA algorithms find the best deal.
+  </p>
+  <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap">
+    <a href="/products" class="btn btn-primary" style="padding:.9rem 2rem;border-radius:14px">Browse Products →</a>
+    <a href="/algorithms" class="btn btn-ghost" style="padding:.9rem 2rem;border-radius:14px">📚 View Algorithms</a>
+  </div>
+</section>
+
+<footer>
+  <p>🛒 Smart Shopping Cart Optimizer — DAA Project</p>
+  <p style="margin-top:.25rem">Merge Sort · Greedy · Fractional Knapsack · TSP (Held-Karp DP) · Kruskal's MST</p>
+</footer>
+
+<script src="/js/state.js?v=2"></script>
+<script>
+  renderNavbar('home');
+
+  function doSearch(e) {
+    e.preventDefault();
+    const q = document.getElementById('hero-search').value.trim();
+    window.location.href = q ? `/products?search=${encodeURIComponent(q)}` : '/products';
+  }
+  function goCat(cat) {
+    window.location.href = `/products?category=${encodeURIComponent(cat)}`;
+  }
+
+  // Draw price history chart via pure SVG
+  function drawChart() {
+    const data = {
+      weeks:    ['W1','W2','W3','W4','W5','W6','W7','W8'],
+      amazon:   [125999,122999,119999,121999,118999,115999,117999,119999],
+      flipkart: [122999,120999,119999,119999,118499,116999,117499,119999],
+      meesho:   [119999,118999,117999,116999,115999,114999,115499,115999]
+    };
+
+    const W = document.getElementById('price-chart').clientWidth || 700;
+    const H = 200, PAD = 50;
+    const allVals = [...data.amazon,...data.flipkart,...data.meesho];
+    const minV = Math.min(...allVals) - 2000;
+    const maxV = Math.max(...allVals);
+    const toX  = i => PAD + i * (W - PAD*2) / (data.weeks.length - 1);
+    const toY  = v => H - PAD/2 - ((v - minV) / (maxV - minV)) * (H - PAD);
+
+    const series = [
+      { key:'amazon',   color:'#FF9900' },
+      { key:'flipkart', color:'#2874F0' },
+      { key:'meesho',   color:'#f43f5e' }
+    ];
+
+    let gridLines='', weekLabels='', priceLabels='', lines='';
+
+    // Grid lines
+    for(let i=0;i<5;i++){
+      const y = PAD/2 + i*(H-PAD)/(4);
+      const val = maxV - i*(maxV-minV)/4;
+      gridLines += `<line x1="${PAD}" y1="${y}" x2="${W-10}" y2="${y}" stroke="rgba(99,102,241,.08)" stroke-width="1"/>`;
+      priceLabels += `<text x="${PAD-5}" y="${y+4}" text-anchor="end" fill="#475569" font-size="10">₹${(val/1000).toFixed(0)}K</text>`;
+    }
+
+    // Week labels
+    data.weeks.forEach((w,i) => {
+      weekLabels += `<text x="${toX(i)}" y="${H-4}" text-anchor="middle" fill="#475569" font-size="11">${w}</text>`;
+    });
+
+    // Series lines
+    series.forEach(({ key, color }) => {
+      const pts = data[key].map((v,i) => `${toX(i)},${toY(v)}`).join(' ');
+      lines += `<polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>`;
+      // Dots
+      data[key].forEach((v,i) => {
+        lines += `<circle cx="${toX(i)}" cy="${toY(v)}" r="4" fill="${color}" stroke="${color}33" stroke-width="3"/>`;
+      });
+    });
+
+    document.getElementById('price-chart').innerHTML = `
+      <svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:${H}px">
+        ${gridLines}${weekLabels}${priceLabels}${lines}
+      </svg>`;
+  }
+
+  window.addEventListener('load', drawChart);
+  window.addEventListener('resize', drawChart);
+</script>
+</body>
+</html>
