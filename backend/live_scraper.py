@@ -30,18 +30,19 @@ def search_live_products(query="laptop"):
             # Block huge media/font downloads to save RAM and massive amounts of time
             page.route("**/*", lambda route: route.abort() if route.request.resource_type in ["image", "media", "font", "stylesheet"] else route.continue_())
 
-            # Increase timeout dramatically for slower cloud containers
-            page.goto(url, timeout=60000, wait_until="domcontentloaded")
+            # Faster wait strategy for cloud: stop once content is starting to commit
+            page.goto(url, timeout=60000, wait_until="commit")
             items = page.locator('div[data-id]')
             
-            # Wait for at least one item to load, otherwise catch timeout
+            # Reduce wait time for element to appear
             try:
-                items.first.wait_for(timeout=15000)
+                items.first.wait_for(timeout=8000)
                 count = items.count()
             except:
                 count = 0
 
-            for i in range(min(12, count)):
+            # Reduce number of items from 12 to 8 to save processing time on Render
+            for i in range(min(8, count)):
                 item = items.nth(i)
                 
                 # Title extraction

@@ -31,14 +31,36 @@ from live_scraper import search_live_products
 
 # In-memory session cache to bridge dynamic internet searches with cart logic
 LIVE_CACHE = {p["id"]: p for p in PRODUCTS}
+
+# Persistent File-based Cache for Render Deployment
+CACHE_FILE = os.path.join(BASE_DIR, "search_cache.json")
 SCRAPE_CACHE = {}
+
+def load_cache():
+    if os.path.exists(CACHE_FILE):
+        try:
+            with open(CACHE_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except: return {}
+    return {}
+
+def save_cache(cache_data):
+    try:
+        with open(CACHE_FILE, "w", encoding="utf-8") as f:
+            json.dump(cache_data, f, ensure_ascii=False)
+    except: pass
+
+SCRAPE_CACHE = load_cache()
 
 def get_cached_or_scrape(q):
     if q in SCRAPE_CACHE:
         return SCRAPE_CACHE[q]
+    
+    # Scrape only if not in persistent cache
     res = search_live_products(q)
     if res:
         SCRAPE_CACHE[q] = res
+        save_cache(SCRAPE_CACHE)
     return res
 
 # ── Cart Optimizer ─────────────────────────────────────────────────
