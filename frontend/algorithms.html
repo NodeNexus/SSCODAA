@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>DAA Algorithms — SSCO</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧠</text></svg>"/>
+  <link rel="stylesheet" href="/css/style.css"/>
+</head>
+<body>
+<div id="navbar"></div>
+
+<div class="page-sm">
+  <h1 class="section-title">🧠 DAA Algorithms Reference</h1>
+  <p class="section-sub" style="margin-bottom:2rem">
+    All algorithms implemented from scratch — pure Python backend, no external algorithm libraries.
+  </p>
+
+  <!-- Complexity Summary Table -->
+  <div class="card" style="padding:1.5rem;margin-bottom:2rem">
+    <h2 style="font-family:'Space Grotesk',sans-serif;font-size:1.2rem;font-weight:700;color:var(--text);margin-bottom:1rem">
+      ⏱ Complexity Analysis Table
+    </h2>
+    <div style="overflow-x:auto">
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th>Algorithm</th><th>Type</th><th>Time Complexity</th><th>Space</th><th>Used For</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="font-weight:600;color:var(--text)">Merge Sort</td>
+            <td><div class="algo-tag algo-dc">Divide &amp; Conquer</div></td>
+            <td><code style="color:var(--accent2);background:rgba(99,102,241,.1);padding:.2rem .5rem;border-radius:6px">O(n log n)</code></td>
+            <td><code style="color:#818cf8;background:rgba(99,102,241,.06);padding:.2rem .5rem;border-radius:6px">O(n)</code></td>
+            <td style="font-size:.8rem;color:var(--text-3)">Product sorting (price, rating)</td>
+          </tr>
+          <tr>
+            <td style="font-weight:600;color:var(--text)">Greedy Selection</td>
+            <td><div class="algo-tag algo-g">Greedy</div></td>
+            <td><code style="color:var(--accent2);background:rgba(99,102,241,.1);padding:.2rem .5rem;border-radius:6px">O(n × P)</code></td>
+            <td><code style="color:#818cf8;background:rgba(99,102,241,.06);padding:.2rem .5rem;border-radius:6px">O(n)</code></td>
+            <td style="font-size:.8rem;color:var(--text-3)">Cheapest platform per item</td>
+          </tr>
+          <tr>
+            <td style="font-weight:600;color:var(--text)">Fractional Knapsack</td>
+            <td><div class="algo-tag algo-g">Greedy</div></td>
+            <td><code style="color:var(--accent2);background:rgba(99,102,241,.1);padding:.2rem .5rem;border-radius:6px">O(n log n)</code></td>
+            <td><code style="color:#818cf8;background:rgba(99,102,241,.06);padding:.2rem .5rem;border-radius:6px">O(n)</code></td>
+            <td style="font-size:.8rem;color:var(--text-3)">Budget-constrained optimization</td>
+          </tr>
+          <tr>
+            <td style="font-weight:600;color:var(--text)">Held-Karp TSP</td>
+            <td><div class="algo-tag algo-dp">Dynamic Programming</div></td>
+            <td><code style="color:var(--accent2);background:rgba(99,102,241,.1);padding:.2rem .5rem;border-radius:6px">O(2^P × P²)</code></td>
+            <td><code style="color:#818cf8;background:rgba(99,102,241,.06);padding:.2rem .5rem;border-radius:6px">O(2^P × P)</code></td>
+            <td style="font-size:.8rem;color:var(--text-3)">Optimal platform visit order</td>
+          </tr>
+          <tr>
+            <td style="font-weight:600;color:var(--text)">Kruskal's MST</td>
+            <td><div class="algo-tag algo-graph">Graph Algorithm</div></td>
+            <td><code style="color:var(--accent2);background:rgba(99,102,241,.1);padding:.2rem .5rem;border-radius:6px">O(E log E)</code></td>
+            <td><code style="color:#818cf8;background:rgba(99,102,241,.06);padding:.2rem .5rem;border-radius:6px">O(V + E)</code></td>
+            <td style="font-size:.8rem;color:var(--text-3)">Delivery network optimization</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Pseudocode Viewer -->
+  <div class="card" style="padding:1.5rem;margin-bottom:2rem">
+    <h2 style="font-family:'Space Grotesk',sans-serif;font-size:1.2rem;font-weight:700;color:var(--text);margin-bottom:1rem">
+      📄 Pseudocode Viewer
+    </h2>
+    <div style="display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1rem" id="pseudo-tabs"></div>
+    <pre class="code-block" id="pseudo-code"></pre>
+  </div>
+
+  <!-- Live MST Demo -->
+  <div class="card" style="padding:1.5rem;margin-bottom:2rem">
+    <h2 style="font-family:'Space Grotesk',sans-serif;font-size:1.2rem;font-weight:700;color:var(--text);margin-bottom:.4rem">
+      🕸️ Live Demo: Kruskal's MST
+    </h2>
+    <p style="color:var(--text-3);font-size:.83rem;margin-bottom:1rem">
+      Runs Kruskal's algorithm on all 5 platforms to build minimum delivery network. Uses Union-Find with Path Compression.
+    </p>
+    <button class="btn btn-primary btn-sm" id="mst-btn" onclick="runMST()">▶ Run Kruskal's MST</button>
+    <div id="mst-result" style="margin-top:1rem"></div>
+  </div>
+
+  <!-- Live Knapsack Demo -->
+  <div class="card" style="padding:1.5rem">
+    <h2 style="font-family:'Space Grotesk',sans-serif;font-size:1.2rem;font-weight:700;color:var(--text);margin-bottom:.4rem">
+      💼 Live Demo: Fractional Knapsack
+    </h2>
+    <p style="color:var(--text-3);font-size:.83rem;margin-bottom:1rem">
+      Given a budget, greedily pick items by best value/price ratio. Item fractions allowed.
+    </p>
+    <div style="display:flex;gap:.75rem;flex-wrap:wrap;margin-bottom:1rem">
+      <input id="knapsack-budget" class="input" type="number" value="100000" style="max-width:200px" placeholder="Budget (₹)"/>
+      <button class="btn btn-primary btn-sm" id="ks-btn" onclick="runKnapsack()">▶ Run Knapsack</button>
+    </div>
+    <div id="ks-result"></div>
+  </div>
+</div>
+
+<footer><p>🛒 Smart Shopping Cart Optimizer — DAA Project</p></footer>
+
+<script src="/js/state.js?v=2"></script>
+<script>
+  renderNavbar('algorithms');
+
+  const PSEUDOCODE = {
+    'Merge Sort': `MERGE-SORT(A, left, right):
+  if left >= right: return
+  mid = floor((left + right) / 2)
+  MERGE-SORT(A, left, mid)       // Divide: left half
+  MERGE-SORT(A, mid+1, right)    // Divide: right half
+  MERGE(A, left, mid, right)     // Conquer: combine
+
+MERGE(A, left, mid, right):
+  i = left, j = mid+1
+  while i <= mid AND j <= right:
+    if A[i] <= A[j]: result.append(A[i++])
+    else:            result.append(A[j++])
+  append remaining elements
+  copy result back to A[left..right]
+
+Time:  O(n log n)  [All cases]
+Space: O(n)        [Auxiliary array]`,
+
+    'Greedy Selection': `GREEDY-CHEAPEST(cartItems):
+  totalCost = 0
+  for each item in cartItems:          // O(n)
+    bestCost = infinity
+    bestPlatform = null
+    for each platform P in {5 platforms}: // O(P)
+      eff = P.price + P.deliveryCost
+      if item.available[P] AND eff < bestCost:
+        bestCost = eff
+        bestPlatform = P
+    select bestPlatform for item
+    totalCost += bestCost
+  return totalCost, selections
+
+Time:  O(n x P)  P = 5 platforms
+Space: O(n)`,
+
+    'Fractional Knapsack': `FRACTIONAL-KNAPSACK(items, budget):
+  for each item:
+    ratio = value / price        // O(n)
+
+  SORT items by ratio DESC       // O(n log n) ← dominates
+
+  remaining = budget
+  for each item in sorted order: // O(n)
+    if item.price <= remaining:
+      take full item (fraction = 1.0)
+      remaining -= item.price
+    else:
+      fraction = remaining / item.price   // Greedy choice!
+      take fraction of item
+      remaining = 0; BREAK
+
+  return totalValue, selectedItems
+
+Time:  O(n log n)
+Space: O(n)`,
+
+    'Held-Karp TSP': `HELD-KARP(cost[n][n]):
+  // Bitmask DP  — O(2^n x n^2)
+
+  dp[1][0] = 0    // Start at platform 0
+  Initialize all dp[mask][i] = infinity
+
+  for mask = 1 to (1<<n) - 1:
+    for each platform u in mask:
+      if dp[mask][u] == inf: skip
+      for each platform v NOT in mask:
+        newMask = mask | (1 << v)
+        newCost = dp[mask][u] + cost[u][v]
+        if newCost < dp[newMask][v]:
+          dp[newMask][v] = newCost
+          parent[newMask][v] = u
+
+  // Find min cost ending platform
+  last = argmin(dp[FULL_MASK][v]) for v = 1..n-1
+
+  // Reconstruct path via parent table
+  path = backtrack(parent, FULL_MASK, last)
+  return path, dp[FULL_MASK][last]
+
+Time:  O(2^P x P^2)
+Space: O(2^P x P)`,
+
+    "Kruskal's MST": `KRUSKAL(Graph G = (V, E)):
+  // O(E log E) with Union-Find
+
+  Sort E by weight ascending     // O(E log E)
+  UF = UnionFind(|V|)            // Initialize DSU
+
+  MST = []
+  for each edge (u, v, w) in sorted E:  // O(E)
+    if UF.find(u) != UF.find(v):  // O(alpha(n))
+      MST.append((u, v, w))
+      UF.union(u, v)              // Union by Rank
+      if |MST| == |V| - 1: BREAK  // MST complete!
+    // else: would form cycle — SKIP
+
+  return MST
+
+UNION-FIND with Path Compression + Union by Rank:
+  find(x): if parent[x]!=x: parent[x]=find(parent[x])
+            return parent[x]
+  union(x,y): attach smaller-rank tree under larger
+
+Time:  O(E log E)
+Space: O(V + E)`
+  };
+
+  // Tabs
+  const tabsEl = document.getElementById('pseudo-tabs');
+  const codeEl = document.getElementById('pseudo-code');
+  let active   = Object.keys(PSEUDOCODE)[0];
+
+  function selectPseudo(name) {
+    active = name;
+    codeEl.textContent = PSEUDOCODE[name];
+    tabsEl.querySelectorAll('button').forEach(b => {
+      b.className = 'tab-btn' + (b.dataset.name === name ? ' active' : '');
+    });
+  }
+
+  Object.keys(PSEUDOCODE).forEach(name => {
+    const btn = document.createElement('button');
+    btn.className = 'tab-btn';
+    btn.dataset.name = name;
+    btn.textContent = name;
+    btn.onclick = () => selectPseudo(name);
+    tabsEl.appendChild(btn);
+  });
+  selectPseudo(active);
+
+  // MST Demo
+  async function runMST() {
+    const btn = document.getElementById('mst-btn');
+    btn.textContent = '⚙️ Computing...'; btn.disabled = true;
+    try {
+      const res  = await fetch('/api/optimize/mst');
+      const data = await res.json();
+
+      const stepsHTML = (data.steps || []).map(st => `
+        <div class="mst-edge ${st.action==='ACCEPTED'?'mst-accepted':'mst-rejected'}">
+          <span>${st.action==='ACCEPTED'?'✅':'❌'}</span>
+          <span style="color:${st.action==='ACCEPTED'?'var(--green-2)':'var(--red)'};font-weight:600">${st.edge}</span>
+          <span style="color:var(--text-3)">w=${st.weight}</span>
+          <span style="color:var(--text-3);font-size:.74rem">${st.reason}</span>
+        </div>`).join('');
+
+      document.getElementById('mst-result').innerHTML = `
+        <div style="font-size:.84rem;color:var(--text-2);margin-bottom:.75rem">
+          Complexity: <code style="color:var(--gold)">${data.complexity}</code> ·
+          MST Weight: <b style="color:var(--green-2)">${data.total_weight}</b>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:.35rem">${stepsHTML}</div>
+        <div style="margin-top:.75rem;padding:.75rem;background:rgba(16,185,129,.07);border:1px solid rgba(16,185,129,.18);border-radius:10px;font-size:.84rem;color:#6ee7b7">
+          ✅ ${data.interpretation}
+        </div>`;
+    } catch(e) {
+      document.getElementById('mst-result').innerHTML =
+        '<div style="color:var(--red);font-size:.84rem">⚠️ Could not connect to Python backend. Run: python backend/server.py</div>';
+    } finally {
+      btn.textContent = '▶ Run Kruskal\'s MST'; btn.disabled = false;
+    }
+  }
+
+  // Knapsack Demo
+  async function runKnapsack() {
+    const btn    = document.getElementById('ks-btn');
+    const budget = document.getElementById('knapsack-budget').value;
+    btn.textContent = '⚙️ Computing...'; btn.disabled = true;
+    try {
+      const res  = await fetch('/api/optimize/knapsack', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ budget: parseInt(budget) })
+      });
+      const data = await res.json();
+
+      const rows = (data.steps || []).map(s => `
+        <tr>
+          <td>${s.item.slice(0,22)}</td>
+          <td style="color:var(--accent2);font-family:monospace">${s.ratio}</td>
+          <td style="color:${s.taken.startsWith('Full')?'var(--green-2)':'var(--gold)'};font-weight:600">${s.taken}</td>
+          <td>${fmtPrice(s.cost)}</td>
+          <td style="color:var(--text-3)">${fmtPrice(s.budget_left)}</td>
+        </tr>`).join('');
+
+      document.getElementById('ks-result').innerHTML = `
+        <div style="display:flex;gap:2rem;flex-wrap:wrap;margin-bottom:1rem">
+          <div><div style="font-size:.73rem;color:var(--text-3)">Budget</div>
+            <div style="font-size:1.2rem;font-weight:800;font-family:'Space Grotesk',sans-serif">${fmtPrice(data.budget)}</div></div>
+          <div><div style="font-size:.73rem;color:var(--text-3)">Spent</div>
+            <div style="font-size:1.2rem;font-weight:800;color:#60a5fa;font-family:'Space Grotesk',sans-serif">${fmtPrice(data.amount_spent)}</div></div>
+          <div><div style="font-size:.73rem;color:var(--text-3)">Value Score</div>
+            <div style="font-size:1.2rem;font-weight:800;color:var(--green-2);font-family:'Space Grotesk',sans-serif">${data.total_value}</div></div>
+        </div>
+        <table class="tbl">
+          <thead><tr><th>Item</th><th>Ratio</th><th>Fraction</th><th>Cost</th><th>Budget Left</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+        <div class="algo-tag algo-g" style="margin-top:.75rem">Time: O(n log n)</div>`;
+    } catch(e) {
+      document.getElementById('ks-result').innerHTML =
+        '<div style="color:var(--red);font-size:.84rem">⚠️ Could not connect to Python backend. Run: python backend/server.py</div>';
+    } finally {
+      btn.textContent = '▶ Run Knapsack'; btn.disabled = false;
+    }
+  }
+</script>
+</body>
+</html>

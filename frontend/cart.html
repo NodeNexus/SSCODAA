@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Smart Cart — SSCO | DAA Optimization</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛒</text></svg>"/>
+  <link rel="stylesheet" href="/css/style.css"/>
+</head>
+<body>
+<div id="navbar"></div>
+
+<div class="page-sm">
+  <h1 class="section-title">🛒 Smart Cart</h1>
+  <p id="cart-info" class="section-sub" style="margin-bottom:1.5rem">0 items — Add products and run DAA optimization</p>
+
+  <!-- Tab bar -->
+  <div class="tab-bar">
+    <button class="tab-btn active" id="tab-cart" onclick="switchTab('cart')">🛒 Cart Items</button>
+    <button class="tab-btn" id="tab-results" onclick="switchTab('results')">⚡ Optimization Results</button>
+  </div>
+
+  <!-- ── CART TAB ── -->
+  <div id="pane-cart">
+    <div id="empty-cart" class="card" style="padding:4rem;text-align:center;display:none">
+      <div style="font-size:4rem;margin-bottom:1rem">🛒</div>
+      <h2 style="color:var(--text-2);margin-bottom:.5rem">Your cart is empty</h2>
+      <p style="color:var(--text-3);font-size:.88rem;margin-bottom:1.5rem">Browse products and add them to see the optimization in action</p>
+      <a href="/products" class="btn btn-primary">Browse Products →</a>
+    </div>
+
+    <div id="cart-list" style="display:flex;flex-direction:column;gap:.75rem"></div>
+
+    <!-- Cart summary -->
+    <div id="cart-summary" class="card" style="padding:1.5rem;margin-top:1rem;display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1.5rem">
+        <div>
+          <div style="color:var(--text-3);font-size:.83rem">Normal (Amazon) total</div>
+          <div id="naive-cost" style="font-size:1.5rem;font-weight:800;color:var(--text-3);text-decoration:line-through;font-family:'Space Grotesk',sans-serif">—</div>
+          <div style="color:var(--text-3);font-size:.83rem;margin-top:.5rem">Greedy best price (estimate)</div>
+          <div id="greedy-cost" style="font-size:1.5rem;font-weight:800;color:var(--green);font-family:'Space Grotesk',sans-serif">—</div>
+          <div id="quick-save" style="color:#6ee7b7;font-size:.8rem;margin-top:.2rem"></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:.75rem">
+          <input id="budget-input" class="input" type="number" placeholder="Optional budget ₹ (for Knapsack)"
+                 style="width:270px"/>
+          <button class="btn btn-primary" id="optimize-btn" style="width:270px;padding:.9rem" onclick="runOptimize()">
+            ⚡ Optimize Cart (All DAA)
+          </button>
+          <button class="btn btn-danger" id="clear-btn" style="width:270px" onclick="clearCart()" style="display:none">
+            🗑️ Clear Cart
+          </button>
+        </div>
+      </div>
+      <div id="opt-error" style="margin-top:1rem;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:10px;padding:.75rem 1rem;color:#fca5a5;font-size:.85rem;display:none"></div>
+    </div>
+  </div>
+
+  <!-- ── RESULTS TAB ── -->
+  <div id="pane-results" style="display:none">
+    <div id="no-results" class="card" style="padding:3rem;text-align:center">
+      <div style="font-size:3rem;margin-bottom:1rem">⚡</div>
+      <div style="color:var(--text-2)">Click "Optimize Cart" on the Cart Items tab to run all DAA algorithms</div>
+    </div>
+    <div id="results-content" style="display:none"></div>
+  </div>
+</div>
+
+<footer><p>🛒 Smart Shopping Cart Optimizer — DAA Project</p></footer>
+
+<script src="/js/state.js?v=2"></script>
+<script>
+  renderNavbar('cart');
+
+  let activeTab = 'cart';
+
+  function switchTab(tab) {
+    activeTab = tab;
+    document.getElementById('pane-cart').style.display    = tab === 'cart'    ? 'block' : 'none';
+    document.getElementById('pane-results').style.display = tab === 'results' ? 'block' : 'none';
+    document.getElementById('tab-cart').className    = 'tab-btn' + (tab==='cart'    ? ' active' : '');
+    document.getElementById('tab-results').className = 'tab-btn' + (tab==='results' ? ' active' : '');
+  }
+
+  function renderCart() {
+    const cart = STATE.getCart();
+    document.getElementById('cart-info').textContent =
+      `${cart.length} ${cart.length===1?'item':'items'} · Run optimization to see DAA algorithms`;
+
+    const emptyDiv   = document.getElementById('empty-cart');
+    const listDiv    = document.getElementById('cart-list');
+    const summaryDiv = document.getElementById('cart-summary');
+    const clearBtn   = document.getElementById('clear-btn');
+
+    if (cart.length === 0) {
+      emptyDiv.style.display   = 'flex';
+      emptyDiv.style.flexDirection = 'column';
+      emptyDiv.style.alignItems = 'center';
+      listDiv.style.display    = 'none';
+      summaryDiv.style.display = 'none';
+      return;
+    }
+
+    emptyDiv.style.display   = 'none';
+    listDiv.style.display    = 'flex';
+    summaryDiv.style.display = 'block';
+    clearBtn.style.display   = 'block';
+
+    // Compute naive & greedy costs
+    let naiveCost = 0, greedyCost = 0;
+    cart.forEach(p => {
+      const ap = p.platforms?.amazon;
+      if (ap?.available) naiveCost += ap.price + ap.deliveryCost;
+      else {
+        const prices = Object.values(p.platforms||{}).filter(x=>x.available).map(x=>x.price+x.deliveryCost);
+        naiveCost += prices.length ? Math.min(...prices) : 0;
+      }
+      const { price } = getBestPrice(p);
+      greedyCost += price;
+    });
+
+    document.getElementById('naive-cost').textContent  = fmtPrice(naiveCost);
+    document.getElementById('greedy-cost').textContent = fmtPrice(greedyCost);
+    document.getElementById('quick-save').textContent  =
+      naiveCost > greedyCost ? `Quick save: ${fmtPrice(naiveCost - greedyCost)}` : '';
+
+    // Render cart items
+    listDiv.innerHTML = cart.map((product, idx) => {
+      const { price: bestPrice, platform: bestPlatform } = getBestPrice(product);
+      const pi = PLAT[bestPlatform] || {};
+      const platformPills = Object.entries(product.platforms || {}).map(([name, p]) => {
+        const eff = p.price + p.deliveryCost;
+        const isBest = name === bestPlatform;
+        const pl = PLAT[name] || {};
+        return `<div style="padding:.28rem .65rem;border-radius:8px;font-size:.76rem;
+          background:${isBest ? pl.color+'22' : 'rgba(255,255,255,.04)'};
+          border:1px solid ${isBest ? pl.color+'55' : 'rgba(255,255,255,.05)'};
+          color:${isBest ? pl.color : p.available ? 'var(--text-2)' : 'var(--text-3)'}">
+          <b>${pl.label}</b> ${p.available ? fmtPrice(eff)+(isBest?' ✓':'') : 'N/A'}
+        </div>`;
+      }).join('');
+
+      return `
+        <div class="card fade-in" style="padding:1.25rem" data-id="${product.id}">
+          <div class="cart-item">
+            <div class="cart-thumb">
+              <img src="${product.image}" alt="${product.name}"
+                   onerror="this.src='https://placehold.co/70x70/1a1a35/6366f1?text=${encodeURIComponent(product.name.slice(0,4))}'"/>
+            </div>
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:700;color:var(--text);margin-bottom:.2rem">${product.name}</div>
+              <div style="font-size:.76rem;color:var(--text-3);margin-bottom:.65rem">${product.category}</div>
+              <div style="display:flex;flex-wrap:wrap;gap:.35rem">${platformPills}</div>
+            </div>
+            <div style="text-align:right;flex-shrink:0">
+              <div style="font-size:1.2rem;font-weight:800;color:var(--text);font-family:'Space Grotesk',sans-serif">
+                ${fmtPrice(bestPrice)}
+              </div>
+              <div style="font-size:.74rem;color:var(--green);margin:.2rem 0 .5rem">Best: ${pi.label}</div>
+              <button class="btn btn-danger btn-sm" onclick="removeItem(${product.id})">Remove</button>
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  function removeItem(id) {
+    STATE.removeFromCart(id);
+    renderCart();
+  }
+
+  function clearCart() {
+    STATE.clearCart();
+    renderCart();
+    document.getElementById('results-content').style.display = 'none';
+    document.getElementById('no-results').style.display      = 'block';
+  }
+
+  async function runOptimize() {
+    const cart = STATE.getCart();
+    if (!cart.length) { showToast('Add items to the cart first', 'error'); return; }
+
+    const btn    = document.getElementById('optimize-btn');
+    const errDiv = document.getElementById('opt-error');
+    btn.textContent  = '⚙️ Running algorithms...';
+    btn.disabled     = true;
+    errDiv.style.display = 'none';
+
+    const budget = document.getElementById('budget-input').value;
+
+    try {
+      const res  = await fetch('/api/optimize', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ cartItemIds: cart.map(p=>p.id), budget: budget ? parseInt(budget) : null })
+      });
+      const data = await res.json();
+
+      if (!data.success) throw new Error(data.error || 'Unknown error');
+
+      renderResults(data);
+      switchTab('results');
+    } catch(e) {
+      errDiv.textContent = '⚠️ ' + (e.message || 'Could not connect to Python backend. Run: python backend/server.py');
+      errDiv.style.display = 'block';
+    } finally {
+      btn.textContent = '⚡ Optimize Cart (All DAA)';
+      btn.disabled    = false;
+    }
+  }
+
+  function renderResults(data) {
+    const s          = data.summary;
+    const noResults  = document.getElementById('no-results');
+    const resContent = document.getElementById('results-content');
+    noResults.style.display  = 'none';
+    resContent.style.display = 'block';
+
+    const platformOrder = (data.recommended_order || []).map(p => {
+      const pi = PLAT[p] || { label: p, color: '#6366f1' };
+      return `<div style="padding:.4rem 1rem;border-radius:10px;background:${pi.color}20;
+        border:1px solid ${pi.color}40;color:${pi.color};font-weight:700;font-size:.88rem">
+        ${pi.label}
+      </div>`;
+    }).join('<span style="color:var(--text-3)">→</span>');
+
+    // Greedy steps table rows
+    const greedyRows = (data.algorithms?.step1_greedy?.steps || []).map(s => `
+      <tr>
+        <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.product}</td>
+        <td><span class="badge badge-${s.greedy_choice}">${PLAT[s.greedy_choice]?.label || s.greedy_choice}</span></td>
+        <td style="color:var(--green-2);font-weight:700">${fmtPrice(s.greedy_cost)}</td>
+        <td style="color:var(--text-3);text-decoration:line-through">${s.naive_cost != null ? fmtPrice(s.naive_cost) : 'N/A'}</td>
+        <td style="color:#6ee7b7">${fmtPrice(s.saving)}</td>
+      </tr>`).join('');
+
+    // MST steps
+    const mstSteps = (data.algorithms?.step3_mst?.steps || []).map(st => `
+      <div class="mst-edge ${st.action==='ACCEPTED'?'mst-accepted':'mst-rejected'}">
+        <span>${st.action==='ACCEPTED'?'✅':'❌'}</span>
+        <span style="color:${st.action==='ACCEPTED'?'var(--green-2)':'var(--red)'};font-weight:600">${st.edge}</span>
+        <span style="color:var(--text-3)">w=${st.weight}</span>
+        <span style="color:var(--text-3);font-size:.74rem">${st.reason}</span>
+      </div>`).join('');
+
+    // TSP DP table
+    const tspRows = (data.algorithms?.step2_tsp?.dp_table_sample || []).map(row => `
+      <tr>
+        <td style="font-family:monospace;color:#c084fc">${row.mask}</td>
+        <td>${row.platforms.join(', ')}</td>
+        <td>${row.end_at}</td>
+        <td style="color:var(--gold)">${row.cost}</td>
+      </tr>`).join('');
+
+    // Sort table
+    const sortRows = (data.algorithms?.step5_sort?.sorted || []).map((p,i) => `
+      <tr>
+        <td style="color:${i<3?'var(--gold)':'var(--text-3)'};font-weight:700">#${i+1}</td>
+        <td>${p.name}</td>
+        <td style="color:var(--green-2);font-weight:700">${fmtPrice(p.best_price)}</td>
+      </tr>`).join('');
+
+    // Knapsack section
+    const knapsackHTML = data.algorithms?.step4_knapsack ? `
+      <div class="algo-step" style="border-color:#60a5fa25;background:linear-gradient(135deg,#60a5fa06,transparent)">
+        <button class="algo-step-head" onclick="toggleStep(this)">
+          <div style="display:flex;align-items:center;gap:.75rem">
+            <div class="algo-num" style="background:#60a5fa20;border:1px solid #60a5fa40;color:#60a5fa">4</div>
+            <div>
+              <div style="color:var(--text);font-weight:700">Fractional Knapsack — Budget Optimization</div>
+              <div class="algo-tag algo-g" style="margin-top:.25rem">Greedy</div>
+            </div>
+          </div>
+          <span style="color:#60a5fa">▼</span>
+        </button>
+        <div class="algo-step-body" style="border-top:1px solid #60a5fa15">
+          <div style="display:flex;gap:2rem;flex-wrap:wrap;margin:.75rem 0 1rem">
+            <div><div style="font-size:.75rem;color:var(--text-3)">Budget</div>
+              <div style="font-size:1.2rem;font-weight:800;font-family:'Space Grotesk',sans-serif">${fmtPrice(data.algorithms.step4_knapsack.budget)}</div></div>
+            <div><div style="font-size:.75rem;color:var(--text-3)">Spent</div>
+              <div style="font-size:1.2rem;font-weight:800;color:#60a5fa;font-family:'Space Grotesk',sans-serif">${fmtPrice(data.algorithms.step4_knapsack.amount_spent)}</div></div>
+            <div><div style="font-size:.75rem;color:var(--text-3)">Value Score</div>
+              <div style="font-size:1.2rem;font-weight:800;color:var(--green-2);font-family:'Space Grotesk',sans-serif">${data.algorithms.step4_knapsack.total_value}</div></div>
+          </div>
+          <table class="tbl">
+            <thead><tr><th>Item</th><th>Ratio</th><th>Taken</th><th>Cost</th><th>Budget Left</th></tr></thead>
+            <tbody>
+              ${(data.algorithms.step4_knapsack.steps||[]).map(st=>`
+                <tr>
+                  <td>${st.item}</td>
+                  <td style="font-family:monospace;color:var(--accent2)">${st.ratio}</td>
+                  <td style="color:${st.taken.startsWith('Full')?'var(--green-2)':'var(--gold)'};font-weight:600">${st.taken}</td>
+                  <td>${fmtPrice(st.cost)}</td>
+                  <td style="color:var(--text-3)">${fmtPrice(st.budget_left)}</td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+          <div class="algo-tag algo-g" style="margin-top:.75rem">Time: O(n log n)</div>
+        </div>
+      </div>` : '';
+
+    // Complexity table
+    const cplxRows = Object.entries(data.complexity_analysis || {})
+      .filter(([k]) => k !== 'overall')
+      .map(([k, v]) => {
+        const parts = v.split(' — ');
+        return `<div class="cplx-row">
+          <div style="color:var(--text-2);font-size:.83rem">${k.replace(/([A-Z])/g,' $1').trim()}</div>
+          <code style="color:var(--accent2);background:rgba(99,102,241,.08);padding:.2rem .5rem;border-radius:6px;font-size:.78rem">${parts[0]}</code>
+          <div style="color:var(--text-3);font-size:.76rem">${parts[1]||''}</div>
+        </div>`;
+      }).join('');
+
+    resContent.innerHTML = `
+      <!-- Savings Banner -->
+      <div class="savings-banner" style="margin-bottom:1.5rem">
+        <div style="display:flex;flex-wrap:wrap;gap:2rem;align-items:center;justify-content:space-between">
+          <div>
+            <div style="font-size:.76rem;color:#6ee7b7;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.4rem">🎉 Optimization Result</div>
+            <div style="font-family:'Space Grotesk',sans-serif;font-size:2.4rem;font-weight:900;color:#6ee7b7">
+              You saved ${fmtPrice(s.total_savings)}
+            </div>
+            <div style="color:#34d399;font-size:.9rem;margin-top:.25rem">
+              ${s.savings_percent}% cheaper than buying everything from Amazon
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+            ${[
+              {l:'Amazon Total',     v:fmtPrice(s.naive_cost),      c:'var(--text-3)', strike:true},
+              {l:'Optimized Total',  v:fmtPrice(s.optimized_cost),  c:'#6ee7b7',       strike:false},
+              {l:'Platforms Used',   v:s.platforms_used.length,     c:'var(--accent2)',strike:false},
+              {l:'Run Time',         v:s.execution_ms+'ms',         c:'var(--gold)',   strike:false}
+            ].map(x=>`
+              <div style="text-align:center">
+                <div style="font-size:.73rem;color:#4b9e6b;margin-bottom:.25rem">${x.l}</div>
+                <div style="font-size:1.15rem;font-weight:800;color:${x.c};font-family:'Space Grotesk',sans-serif;${x.strike?'text-decoration:line-through':''}">${x.v}</div>
+              </div>`).join('')}
+          </div>
+        </div>
+      </div>
+
+      <!-- Platform Order -->
+      <div class="card" style="padding:1.25rem;margin-bottom:1.25rem">
+        <h3 style="color:var(--text);font-weight:700;margin-bottom:.75rem">🗺️ Recommended Platform Order (TSP — Held-Karp DP)</h3>
+        <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">${platformOrder}</div>
+        <div class="algo-tag algo-dp" style="margin-top:.75rem">Held-Karp TSP · O(2^P × P²)</div>
+      </div>
+
+      <h3 style="color:var(--text);font-weight:700;margin-bottom:1rem">📋 Step-by-Step Algorithm Breakdown</h3>
+
+      <!-- Step 1: Greedy -->
+      <div class="algo-step" style="border-color:#4ade8025;background:linear-gradient(135deg,#4ade8006,transparent)">
+        <button class="algo-step-head" onclick="toggleStep(this)">
+          <div style="display:flex;align-items:center;gap:.75rem">
+            <div class="algo-num" style="background:#4ade8020;border:1px solid #4ade8040;color:#4ade80">1</div>
+            <div>
+              <div style="color:var(--text);font-weight:700">Greedy Platform Selection</div>
+              <div class="algo-tag algo-g" style="margin-top:.25rem">Greedy · O(n × P)</div>
+            </div>
+          </div>
+          <span style="color:#4ade80">▼</span>
+        </button>
+        <div class="algo-step-body" style="border-top:1px solid #4ade8015">
+          <table class="tbl" style="margin-top:.75rem">
+            <thead><tr><th>Product</th><th>Best Platform</th><th>Greedy Cost</th><th>Amazon Cost</th><th>Saved</th></tr></thead>
+            <tbody>${greedyRows}</tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Step 2: TSP -->
+      <div class="algo-step" style="border-color:#c084fc25;background:linear-gradient(135deg,#c084fc06,transparent)">
+        <button class="algo-step-head" onclick="toggleStep(this)">
+          <div style="display:flex;align-items:center;gap:.75rem">
+            <div class="algo-num" style="background:#c084fc20;border:1px solid #c084fc40;color:#c084fc">2</div>
+            <div>
+              <div style="color:var(--text);font-weight:700">TSP — Held-Karp Bitmask DP</div>
+              <div class="algo-tag algo-dp" style="margin-top:.25rem">Dynamic Programming</div>
+            </div>
+          </div>
+          <span style="color:#c084fc">▼</span>
+        </button>
+        <div class="algo-step-body" style="border-top:1px solid #c084fc15;display:none">
+          <div style="margin:.75rem 0;font-size:.84rem;color:var(--text-2);line-height:1.7">
+            <p><b style="color:#c084fc">State:</b> dp[mask][i] = min cost to visit platforms in bitmask, ending at platform i</p>
+            <p><b style="color:#c084fc">Recurrence:</b> dp[mask][i] = min over j not in mask: { dp[mask ^ (1&lt;&lt;i)][j] + cost[j][i] }</p>
+          </div>
+          ${tspRows ? `
+            <div style="font-size:.76rem;color:var(--text-3);margin-bottom:.5rem">DP Table Sample:</div>
+            <table class="tbl">
+              <thead><tr><th>Bitmask</th><th>Platforms Visited</th><th>End At</th><th>Cost</th></tr></thead>
+              <tbody>${tspRows}</tbody>
+            </table>` : ''}
+          <div class="algo-tag algo-dp" style="margin-top:.75rem">${data.algorithms?.step2_tsp?.complexity || 'O(2^P × P²)'}</div>
+        </div>
+      </div>
+
+      <!-- Step 3: MST -->
+      <div class="algo-step" style="border-color:#fbbf2425;background:linear-gradient(135deg,#fbbf2406,transparent)">
+        <button class="algo-step-head" onclick="toggleStep(this)">
+          <div style="display:flex;align-items:center;gap:.75rem">
+            <div class="algo-num" style="background:#fbbf2420;border:1px solid #fbbf2440;color:var(--gold)">3</div>
+            <div>
+              <div style="color:var(--text);font-weight:700">Kruskal's MST — Delivery Network</div>
+              <div class="algo-tag algo-graph" style="margin-top:.25rem">Graph Algorithm</div>
+            </div>
+          </div>
+          <span style="color:var(--gold)">▼</span>
+        </button>
+        <div class="algo-step-body" style="border-top:1px solid #fbbf2415;display:none">
+          <div style="font-size:.84rem;color:var(--text-2);margin:.75rem 0">
+            MST connects all platforms with minimum logistics cost.
+            <b style="color:var(--gold)"> Total weight: ${data.algorithms?.step3_mst?.total_weight}</b>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:.35rem">${mstSteps}</div>
+          <div class="algo-tag algo-graph" style="margin-top:.75rem">${data.algorithms?.step3_mst?.complexity||'O(E log E)'}</div>
+        </div>
+      </div>
+
+      ${knapsackHTML}
+
+      <!-- Step 5: Merge Sort -->
+      <div class="algo-step" style="border-color:#60a5fa25;background:linear-gradient(135deg,#60a5fa06,transparent)">
+        <button class="algo-step-head" onclick="toggleStep(this)">
+          <div style="display:flex;align-items:center;gap:.75rem">
+            <div class="algo-num" style="background:#60a5fa20;border:1px solid #60a5fa40;color:#60a5fa">5</div>
+            <div>
+              <div style="color:var(--text);font-weight:700">Merge Sort — Sorted Cart by Best Price</div>
+              <div class="algo-tag algo-dc" style="margin-top:.25rem">Divide &amp; Conquer · O(n log n)</div>
+            </div>
+          </div>
+          <span style="color:#60a5fa">▼</span>
+        </button>
+        <div class="algo-step-body" style="border-top:1px solid #60a5fa15;display:none">
+          <div style="font-size:.84rem;color:var(--text-2);margin:.75rem 0">
+            Total comparisons: <b style="color:#60a5fa">${data.algorithms?.step5_sort?.total_comparisons}</b> · Time: <code style="color:#6ee7b7">O(n log n)</code>
+          </div>
+          <table class="tbl">
+            <thead><tr><th>Rank</th><th>Product</th><th>Best Price</th></tr></thead>
+            <tbody>${sortRows}</tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Complexity Summary -->
+      <div class="card" style="padding:1.5rem">
+        <h3 style="color:var(--text);font-weight:700;margin-bottom:1rem">⏱ Time Complexity Summary</h3>
+        ${cplxRows}
+        <div style="margin-top:1rem;padding:.75rem;background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.15);border-radius:10px;color:var(--accent2);font-weight:700;font-size:.84rem">
+          Overall: ${data.complexity_analysis?.overall}
+        </div>
+      </div>`;
+  }
+
+  function toggleStep(btn) {
+    const body  = btn.nextElementSibling;
+    const arrow = btn.querySelector('span:last-child');
+    const open  = body.style.display !== 'none';
+    body.style.display  = open ? 'none' : 'block';
+    arrow.textContent   = open ? '▼' : '▲';
+  }
+
+  // Initialize
+  STATE.on('cart', renderCart);
+  renderCart();
+</script>
+</body>
+</html>
