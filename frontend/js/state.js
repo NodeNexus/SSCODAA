@@ -210,14 +210,20 @@ function productCardHTML(product, platformContext = null) {
 
   const availPlatforms = Object.entries(product.platforms)
     .filter(([, p]) => p.available)
-    .map(([name, p]) =>
-      `<span class="prod-plat-pill badge-${PLAT[name].cls}"
-        style="color:${PLAT[name].color};border-color:${PLAT[name].color}35;background:${PLAT[name].color}12">
-        ${fmtPrice(p.price)}
-      </span>`
-    ).join('');
-
-  return `
+    .map(([name, p]) => {
+      const pl = PLAT[name] || {};
+      const eff = p.price + (p.deliveryCost || 0);
+      return `<span class="prod-plat-pill badge-${pl.cls}"
+        title="${pl.label}: ${fmtPrice(p.price)} + ₹${p.deliveryCost||0} delivery"
+        style="color:${pl.color};border-color:${pl.color}35;background:${pl.color}12">
+        <span style="font-size:.65rem;opacity:.8">${pl.label}</span>
+        <span style="font-weight:700">${fmtPrice(p.price)}</span>
+      </span>`;
+    }).join('');
+  // When no platform selected, show best deal platform badge
+  const badgePlatform = displayPlatform || 'flipkart';
+  const badgePi = PLAT[badgePlatform] || {};
+  const badgeLabel = platformContext ? badgePi.label : `Best: ${badgePi.label}`;
   <div class="card prod-card fade-in" data-id="${productId}">
     <div class="prod-thumb">
       <img src="${productImage}" alt="${productName}"
