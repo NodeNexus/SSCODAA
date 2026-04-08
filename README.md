@@ -18,8 +18,6 @@ A sophisticated full-stack web application designed for analyzing and demonstrat
 
 ---
 
-## 🚀 How to Run Locally
-
 ### Requirements
 - Python 3.10+
 - Playwright Chromium dependencies
@@ -41,18 +39,4 @@ python server.py
 
 ---
 
-## ☁️ How to Deploy Online to Render
-
 This project is fully dockerized to bypass native web-server sandboxes and safely execute headless Chromium engines in isolated security containers.
-
-### Deployment Walkthrough
-1. **Prepare Your GitHub:** Ensure this codebase (along with the `Dockerfile` and `requirements.txt`) is perfectly synced to your GitHub branch.
-2. **Setup Render:** Navigate to the [Render Dashboard](https://dashboard.render.com).
-3. **Launch Service:** Click **"New +"** and choose **"Web Service"**.
-4. **Connect Repository:** Link your `NodeNexus/SSCO` GitHub repository.
-5. **CRITICAL Configuration:**
-   - Instead of Native Python, select **Docker** as your runtime/environment.
-   - Leave build and start commands blank (Render auto-detects our `Dockerfile`).
-6. **Launch:** Click **Deploy**. Render will fetch our system dependencies, install Playwright binaries, circumvent Sandbox restrictions, and dynamically map standard open host ports mapping your `server.py` daemon directly into the cloud.
-
-Done! Give Render roughly 3 to 5 minutes to complete the image build. You'll receive a live URL (`https://your-app-name.onrender.com`)!
