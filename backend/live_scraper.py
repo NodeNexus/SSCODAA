@@ -1,7 +1,54 @@
 from playwright.sync_api import sync_playwright
+import re
 import urllib.parse
 import random
 import hashlib
+
+TITLE_SELECTORS = ['.KzDlHZ', '.WKTcLC', 'a[title]', 'div[data-id] a']
+PRICE_SELECTORS = ['div.Nx9bqj', 'div._30jeq3', '[class*="Nx9bqj"]', '[class*="_30jeq3"]']
+
+def clean_title(text):
+    title = re.sub(r'\s+', ' ', (text or '')).strip()
+    title = title.replace("Add to Compare", "").replace("Currently unavailable", "").strip()
+    title = re.sub(r'₹\s*[\d,]+.*$', '', title).strip()
+    return title[:120]
+
+def extract_title(item):
+    for selector in TITLE_SELECTORS:
+        locator = item.locator(selector).first
+        if locator.count() > 0:
+            text = clean_title(locator.text_content())
+            if len(text) >= 5:
+                return text
+
+    raw_text = clean_title(item.text_content())
+    if len(raw_text) >= 5:
+        return raw_text
+    return None
+
+def extract_price(item):
+    for selector in PRICE_SELECTORS:
+        locator = item.locator(selector)
+        for idx in range(min(locator.count(), 3)):
+            text = locator.nth(idx).text_content() or ''
+            match = re.search(r'₹\s*([\d,]+)', text)
+            if match:
+                value = int(match.group(1).replace(',', ''))
+                if value >= 1000:
+                    return value
+
+    full_text = item.text_content() or ''
+    matches = [int(m.replace(',', '')) for m in re.findall(r'₹\s*([\d,]+)', full_text)]
+    matches = [value for value in matches if value >= 1000]
+    if matches:
+        return max(matches)
+
+    digit_groups = [int(m.replace(',', '')) for m in re.findall(r'\b\d[\d,]{3,}\b', full_text)]
+    digit_groups = [value for value in digit_groups if 1000 <= value <= 500000]
+    if digit_groups:
+        return max(digit_groups)
+
+    return None
 
 def search_live_products(query="laptop"):
     """
@@ -46,26 +93,14 @@ def search_live_products(query="laptop"):
             # Reduce number of items from 12 to 8 to save processing time on Render
             for i in range(min(8, count)):
                 item = items.nth(i)
-                
-                # Title extraction
-                # Flipkart uses various classes for titles like .KzDlHZ or .WKTcLC
-                # We can grab all text content and just take first 80 chars
-                raw_text = item.text_content()
-                if not raw_text: continue
-                title = raw_text.split("₹")[0][:80].strip()
-                title = title.replace("Add to Compare", "").replace("Currently unavailable", "").strip()
-                if len(title) < 5: continue
+
+                title = extract_title(item)
+                if not title:
+                    continue
                 fallback_rng = random.Random(f"{normalized_query}|{title}|{i}|price")
-                
-                # Price extraction
-                price_el = item.locator('div.Nx9bqj').first
-                if price_el.count() > 0:
-                    price_text = price_el.text_content().replace('₹', '').replace(',', '').strip()
-                    try:
-                        base_price = int(price_text)
-                    except ValueError:
-                        base_price = fallback_rng.randint(5000, 50000)
-                else:
+
+                base_price = extract_price(item)
+                if base_price is None:
                     base_price = fallback_rng.randint(5000, 50000)
                     
                 # Image
