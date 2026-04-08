@@ -101,7 +101,7 @@
   renderNavbar('products');
 
   const PLATFORMS = ['amazon','flipkart','meesho','snapdeal','myntra'];
-  let currentPlatform = 'amazon';
+  let currentPlatform = null;  // null = best price across all platforms
   let currentCat = '';
 
   // Read URL params
@@ -115,12 +115,14 @@
   document.getElementById('sortSelect').value  = initSort;
   currentCat = initCategory;
 
-  // Render platform filter buttons
-  document.getElementById('platFilters').innerHTML = PLATFORMS.map(p => `
-    <button class="filter-btn ${p === currentPlatform ? 'active' : ''}"
-            id="plat-${p}" onclick="filterPlat('${p}')">
-      ${PLAT[p]?.label || p}
-    </button>`).join('');
+  // Render platform filter buttons — with 'All' button first
+  document.getElementById('platFilters').innerHTML =
+    `<button class="filter-btn ${!currentPlatform ? 'active' : ''}" id="plat-all" onclick="filterPlat(null)">All</button>` +
+    PLATFORMS.map(p =>
+      `<button class="filter-btn ${p === currentPlatform ? 'active' : ''}"
+              id="plat-${p}" onclick="filterPlat('${p}')">
+        ${PLAT[p]?.label || p}
+      </button>`).join('');
 
   // Load & render categories
   fetch('/api/categories')
@@ -156,7 +158,11 @@
   function filterPlat(p) {
     currentPlatform = p;
     document.querySelectorAll('#platFilters .filter-btn').forEach(b => b.classList.remove('active'));
-    document.getElementById('plat-'+p)?.classList.add('active');
+    if (p) {
+      document.getElementById('plat-'+p)?.classList.add('active');
+    } else {
+      document.getElementById('plat-all')?.classList.add('active');
+    }
     loadProducts();
   }
 
