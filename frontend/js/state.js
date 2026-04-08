@@ -103,8 +103,7 @@ function renderNavbar(activePage) {
     { href:'/',             label:'Home',      icon:'🏠', page:'home' },
     { href:'/products',     label:'Products',  icon:'📦', page:'products', id:'nav-products' },
     { href:'/compare',      label:'Compare',   icon:'⚖️', page:'compare',  badge:'compare-badge' },
-    { href:'/cart',         label:'Cart',      icon:'🛒', page:'cart',     badge:'cart-badge' },
-    { href:'/algorithms',   label:'DAA Info',  icon:'🧠', page:'algorithms' }
+    { href:'/cart',         label:'Cart',      icon:'🛒', page:'cart',     badge:'cart-badge' }
   ];
   const nav = document.getElementById('navbar');
   if (!nav) return;
@@ -242,7 +241,6 @@ function productCardHTML(product, platformContext = null) {
                 onclick="toggleCart(${product.id})">
           ${inCart ? '✓ In Cart' : '🛒 Add to Cart'}
         </button>
-        <a href="/products#detail-${product.id}" class="prod-view-btn">👁️</a>
       </div>
     </div>
   </div>`;
