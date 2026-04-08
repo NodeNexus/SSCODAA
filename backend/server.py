@@ -11,7 +11,7 @@ import os
 import json
 import re
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse, parse_qs, unquote
 
 # ── Path setup ─────────────────────────────────────────────────────
 BASE_DIR     = os.path.dirname(os.path.abspath(__file__))
@@ -31,65 +31,27 @@ from live_scraper import search_live_products
 
 # In-memory session cache to bridge dynamic internet searches with cart logic
 LIVE_CACHE = {p["id"]: p for p in PRODUCTS}
-
-# Persistent File-based Cache for Render Deployment
-CACHE_FILE = os.path.join(BASE_DIR, "search_cache.json")
-SCRAPE_CACHE = {}
-
-def load_cache():
-    if os.path.exists(CACHE_FILE):
-        try:
-            with open(CACHE_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except (OSError, json.JSONDecodeError):
-            return {}
-    return {}
-
-def save_cache(cache_data):
-    try:
-        with open(CACHE_FILE, "w", encoding="utf-8") as f:
-            json.dump(cache_data, f, ensure_ascii=False)
-    except OSError:
-        pass
-
-SCRAPE_CACHE = load_cache()
+SCRAPE_CACHE = {}        # { query: (timestamp, [products]) }
+CACHE_TTL    = 300       # Re-scrape after 5 minutes
 
 def get_cached_or_scrape(q):
-    if q in SCRAPE_CACHE:
-        return SCRAPE_CACHE[q]
-    
-    # Scrape only if not in persistent cache
+    import time
+    entry = SCRAPE_CACHE.get(q)
+    if entry:
+        ts, res = entry
+        if time.time() - ts < CACHE_TTL:
+            print(f"[Cache] Hit for '{q}' ({int(time.time()-ts)}s old)")
+            return res
+        else:
+            print(f"[Cache] Expired for '{q}' — re-scraping")
     res = search_live_products(q)
     if res:
-        SCRAPE_CACHE[q] = res
-        save_cache(SCRAPE_CACHE)
+        SCRAPE_CACHE[q] = (time.time(), res)
+        # Update LIVE_CACHE so /api/products/<id> and /optimize always works
+        for p in res:
+            LIVE_CACHE[p["id"]] = p
     return res
 
-def parse_positive_int(value, default=None):
-    try:
-        parsed = int(value)
-    except (TypeError, ValueError):
-        return default
-    return parsed if parsed > 0 else default
-
-def filter_products(products, search="", category=""):
-    filtered = list(products)
-
-    if search:
-        filtered = [
-            p for p in filtered
-            if search in p.get("name", "").lower()
-            or search in p.get("category", "").lower()
-            or search in p.get("description", "").lower()
-        ]
-
-    if category:
-        filtered = [
-            p for p in filtered
-            if p.get("category", "").lower() == category
-        ]
-
-    return filtered
 
 # ── Cart Optimizer ─────────────────────────────────────────────────
 
@@ -223,15 +185,50 @@ class SSCOHandler(SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    # ── Image proxy ──────────────────────────────────────────────
+    def _api_imgproxy(self, query):
+        """Proxy remote images to avoid hotlink/CORS blocks."""
+        import requests as _req
+        raw_url = query.get("url", [""])[0]
+        url = unquote(raw_url)
+        if not url or not url.startswith("http"):
+            self.send_response(400); self.end_headers(); return
+        try:
+            resp = _req.get(
+                url, timeout=8, stream=True,
+                headers={
+                    "User-Agent": (
+                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                        "AppleWebKit/537.36 (KHTML, like Gecko) "
+                        "Chrome/123.0.0.0 Safari/537.36"
+                    ),
+                    "Referer": url.split("/")[0] + "//" + url.split("/")[2] + "/",
+                },
+                verify=False,
+            )
+            if resp.status_code != 200:
+                raise ValueError(f"upstream {resp.status_code}")
+            content_type = resp.headers.get("Content-Type", "image/jpeg")
+            body = resp.content
+            self.send_response(200)
+            self.send_header("Content-Type",   content_type)
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Cache-Control",  "public, max-age=86400")
+            self._set_cors()
+            self.end_headers()
+            self.wfile.write(body)
+        except Exception as e:
+            print(f"[ImgProxy] Failed: {e}")
+            self.send_response(302)
+            self.send_header("Location", f"https://placehold.co/300x300/f1f5f9/4f46e5?text=No+Image")
+            self.end_headers()
+
     # ── Read POST body ──────────────────────────────────────────
     def _read_json_body(self):
-        length = parse_positive_int(self.headers.get("Content-Length", 0), 0)
+        length = int(self.headers.get("Content-Length", 0))
         if length:
             raw = self.rfile.read(length)
-            try:
-                return json.loads(raw.decode("utf-8"))
-            except (UnicodeDecodeError, json.JSONDecodeError):
-                return {}
+            return json.loads(raw.decode("utf-8"))
         return {}
 
     # ── Route: GET /api/products ────────────────────────────────
@@ -243,18 +240,18 @@ class SSCOHandler(SimpleHTTPRequestHandler):
 
         q = search if search else (category if category else "laptop")
         products = get_cached_or_scrape(q)
-
-        filtered_products = filter_products(products or [], search, category)
-        if filtered_products:
-            products = filtered_products
-        else:
-            fallback_products = filter_products(PRODUCTS, search, category)
-            if fallback_products:
-                products = fallback_products
-            elif products:
-                products = products
-            else:
-                products = list(PRODUCTS[:8])
+        
+        if not products:
+            products = list(PRODUCTS)
+            if search:
+                filtered = [
+                    p for p in products
+                    if search in p["name"].lower()
+                    or search in p["category"].lower()
+                ]
+                products = filtered if filtered else list(PRODUCTS)[:8]
+            if category:
+                products = [p for p in products if p["category"].lower() == category]
 
         # Add to session cache so /optimize can find it later
         for p in products:
@@ -288,8 +285,7 @@ class SSCOHandler(SimpleHTTPRequestHandler):
 
     # ── Route: GET /api/products/<id> ───────────────────────────
     def _api_get_product(self, pid):
-        product_id = parse_positive_int(pid)
-        product = LIVE_CACHE.get(product_id) if product_id is not None else None
+        product = LIVE_CACHE.get(int(pid))
         if not product:
             self._json({"error": "Product not found"}, 404)
         else:
@@ -356,34 +352,26 @@ class SSCOHandler(SimpleHTTPRequestHandler):
         cart_item_ids = body.get("cartItemIds", [])
         budget        = body.get("budget")
 
-        cart_items = [
-            LIVE_CACHE[product_id]
-            for product_id in (parse_positive_int(i) for i in cart_item_ids)
-            if product_id in LIVE_CACHE
-        ]
+        cart_items = [LIVE_CACHE[int(i)] for i in cart_item_ids if int(i) in LIVE_CACHE]
         if not cart_items:
             self._json({"error": "No valid products in cart"}, 400)
             return
 
-        result = optimize_cart(cart_items, parse_positive_int(budget))
+        result = optimize_cart(cart_items, int(budget) if budget else None)
         self._json(result)
 
     # ── POST: /api/optimize/greedy ──────────────────────────────
     def _api_post_greedy(self):
         body          = self._read_json_body()
         cart_item_ids = body.get("cartItemIds", [])
-        cart_items = [
-            LIVE_CACHE[product_id]
-            for product_id in (parse_positive_int(i) for i in cart_item_ids)
-            if product_id in LIVE_CACHE
-        ]
+        cart_items    = [LIVE_CACHE[int(i)] for i in cart_item_ids if int(i) in LIVE_CACHE]
         self._json(greedy_cheapest_platform(cart_items))
 
     # ── POST: /api/optimize/knapsack ────────────────────────────
     def _api_post_knapsack(self):
         body   = self._read_json_body()
-        budget = parse_positive_int(body.get("budget"), 100000)
-        self._json(fractional_knapsack(list(LIVE_CACHE.values()), budget))
+        budget = body.get("budget", 100000)
+        self._json(fractional_knapsack(list(LIVE_CACHE.values()), int(budget)))
 
     # ── GET routing ─────────────────────────────────────────────
     def do_GET(self):
@@ -402,6 +390,8 @@ class SSCOHandler(SimpleHTTPRequestHandler):
             self._api_get_categories(); return
         if path == "/api/optimize/mst":
             self._api_get_mst(); return
+        if path == "/api/imgproxy":
+            self._api_imgproxy(query); return
 
         m = re.match(r"^/api/products/(\d+)$", path)
         if m:

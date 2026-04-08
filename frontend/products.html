@@ -13,10 +13,6 @@
   <div style="margin-bottom:1.25rem">
     <h1 class="section-title">🛍️ Products</h1>
     <p id="result-info" class="section-sub">Loading with Merge Sort...</p>
-    <div style="font-size:0.68rem;color:var(--text-3);margin-top:6px;font-family:monospace;opacity:0.8;display:flex;align-items:center;gap:4px">
-      <span>🔹</span>
-      <span>Source: Real-time Flipkart Scraper + Simulated Multi-platform Pricing (DAA Algorithm Demo)</span>
-    </div>
   </div>
 
   <!-- Algo info banner -->
@@ -72,14 +68,24 @@
         ⚠️ Backend not running. Start it: <code>python backend/server.py</code>
       </div>
 
-            <div id="product-grid" class="grid-3">
-        <!-- Static skeleton cards -->
-        <div class="card"><div class="skeleton" style="height:170px;border-radius:16px 16px 0 0"></div><div style="padding:1rem;display:flex;flex-direction:column;gap:.65rem"><div class="skeleton" style="height:11px;width:30%"></div><div class="skeleton" style="height:17px;width:85%"></div><div class="skeleton" style="height:26px;width:50%"></div><div class="skeleton" style="height:38px;border-radius:11px"></div></div></div>
-        <div class="card"><div class="skeleton" style="height:170px;border-radius:16px 16px 0 0"></div><div style="padding:1rem;display:flex;flex-direction:column;gap:.65rem"><div class="skeleton" style="height:11px;width:40%"></div><div class="skeleton" style="height:17px;width:75%"></div><div class="skeleton" style="height:26px;width:45%"></div><div class="skeleton" style="height:38px;border-radius:11px"></div></div></div>
-        <div class="card"><div class="skeleton" style="height:170px;border-radius:16px 16px 0 0"></div><div style="padding:1rem;display:flex;flex-direction:column;gap:.65rem"><div class="skeleton" style="height:11px;width:35%"></div><div class="skeleton" style="height:17px;width:80%"></div><div class="skeleton" style="height:26px;width:55%"></div><div class="skeleton" style="height:38px;border-radius:11px"></div></div></div>
-        <div class="card"><div class="skeleton" style="height:170px;border-radius:16px 16px 0 0"></div><div style="padding:1rem;display:flex;flex-direction:column;gap:.65rem"><div class="skeleton" style="height:11px;width:30%"></div><div class="skeleton" style="height:17px;width:85%"></div><div class="skeleton" style="height:26px;width:50%"></div><div class="skeleton" style="height:38px;border-radius:11px"></div></div></div>
-        <div class="card"><div class="skeleton" style="height:170px;border-radius:16px 16px 0 0"></div><div style="padding:1rem;display:flex;flex-direction:column;gap:.65rem"><div class="skeleton" style="height:11px;width:25%"></div><div class="skeleton" style="height:17px;width:90%"></div><div class="skeleton" style="height:26px;width:40%"></div><div class="skeleton" style="height:38px;border-radius:11px"></div></div></div>
-        <div class="card"><div class="skeleton" style="height:170px;border-radius:16px 16px 0 0"></div><div style="padding:1rem;display:flex;flex-direction:column;gap:.65rem"><div class="skeleton" style="height:11px;width:38%"></div><div class="skeleton" style="height:17px;width:78%"></div><div class="skeleton" style="height:26px;width:48%"></div><div class="skeleton" style="height:38px;border-radius:11px"></div></div></div>      </div>
+      <div id="product-grid" class="grid-3">
+        <!-- Skeleton cards -->
+        ${[...Array(8)].map(()=>`
+          <div class="card">
+            <div class="skeleton" style="height:170px"></div>
+            <div style="padding:1rem;display:flex;flex-direction:column;gap:.6rem">
+              <div class="skeleton" style="height:10px;width:30%"></div>
+              <div class="skeleton" style="height:16px;width:80%"></div>
+              <div class="skeleton" style="height:12px;width:50%"></div>
+              <div class="skeleton" style="height:24px;width:45%"></div>
+              <div style="display:flex;gap:.35rem">
+                <div class="skeleton" style="height:18px;width:60px;border-radius:100px"></div>
+                <div class="skeleton" style="height:18px;width:60px;border-radius:100px"></div>
+              </div>
+              <div class="skeleton" style="height:36px;border-radius:8px"></div>
+            </div>
+          </div>`).join('')}
+      </div>
     </main>
   </div>
 </div>
@@ -91,7 +97,7 @@
   renderNavbar('products');
 
   const PLATFORMS = ['amazon','flipkart','meesho','snapdeal','myntra'];
-  let currentPlatform = null;  // null = best price across all platforms
+  let currentPlatform = 'amazon';
   let currentCat = '';
 
   // Read URL params
@@ -105,14 +111,12 @@
   document.getElementById('sortSelect').value  = initSort;
   currentCat = initCategory;
 
-  // Render platform filter buttons — with 'All' button first
-  document.getElementById('platFilters').innerHTML =
-    `<button class="filter-btn ${!currentPlatform ? 'active' : ''}" id="plat-all" onclick="filterPlat(null)">All</button>` +
-    PLATFORMS.map(p =>
-      `<button class="filter-btn ${p === currentPlatform ? 'active' : ''}"
-              id="plat-${p}" onclick="filterPlat('${p}')">
-        ${PLAT[p]?.label || p}
-      </button>`).join('');
+  // Render platform filter buttons
+  document.getElementById('platFilters').innerHTML = PLATFORMS.map(p => `
+    <button class="filter-btn ${p === currentPlatform ? 'active' : ''}"
+            id="plat-${p}" onclick="filterPlat('${p}')">
+      ${PLAT[p]?.label || p}
+    </button>`).join('');
 
   // Load & render categories
   fetch('/api/categories')
@@ -136,23 +140,10 @@
 
   function applyFilters() { loadProducts(); }
 
-  function updateUrl({ search, category, sort }) {
-    const next = new URLSearchParams();
-    if (search) next.set('search', search);
-    if (category) next.set('category', category);
-    if (sort && sort !== 'relevance') next.set('sort', sort);
-    const query = next.toString();
-    window.history.replaceState({}, '', query ? `/products?${query}` : '/products');
-  }
-
   function filterPlat(p) {
     currentPlatform = p;
     document.querySelectorAll('#platFilters .filter-btn').forEach(b => b.classList.remove('active'));
-    if (p) {
-      document.getElementById('plat-'+p)?.classList.add('active');
-    } else {
-      document.getElementById('plat-all')?.classList.add('active');
-    }
+    document.getElementById('plat-'+p)?.classList.add('active');
     loadProducts();
   }
 
@@ -171,10 +162,7 @@
 
   async function loadProducts(overrides = {}) {
     const sort     = document.getElementById('sortSelect').value;
-    const search   = Object.prototype.hasOwnProperty.call(overrides, 'search')
-      ? String(overrides.search || '').trim()
-      : document.getElementById('searchInput').value.trim();
-    document.getElementById('searchInput').value = search;
+    const search   = document.getElementById('searchInput').value.trim();
 
     const qs = new URLSearchParams({
       sort:     sort,
@@ -183,8 +171,6 @@
       category: currentCat,
       ...overrides
     });
-
-    updateUrl({ search, category: currentCat, sort });
 
     showSkeletons();
 
@@ -202,7 +188,7 @@
 
       // Update result info
       document.getElementById('result-info').textContent =
-        `${data.count} product${data.count === 1 ? '' : 's'}${search ? ` for "${search}"` : ''} — sorted using Merge Sort O(n log n)`;
+        `${data.count} products — sorted using Merge Sort O(n log n)`;
 
       renderGrid(data.products || []);
     } catch(e) {
@@ -214,12 +200,12 @@
   function showSkeletons() {
     document.getElementById('product-grid').innerHTML = Array(6).fill(`
       <div class="card">
-        <div class="skeleton" style="height:170px;border-radius:16px 16px 0 0"></div>
-        <div style="padding:1rem;display:flex;flex-direction:column;gap:.65rem">
-          <div class="skeleton" style="height:11px;width:35%"></div>
-          <div class="skeleton" style="height:17px;width:80%"></div>
-          <div class="skeleton" style="height:26px;width:45%"></div>
-          <div class="skeleton" style="height:38px;border-radius:11px"></div>
+        <div class="skeleton" style="height:170px"></div>
+        <div style="padding:1rem;display:flex;flex-direction:column;gap:.6rem">
+          <div class="skeleton" style="height:10px;width:35%"></div>
+          <div class="skeleton" style="height:16px;width:80%"></div>
+          <div class="skeleton" style="height:24px;width:45%"></div>
+          <div class="skeleton" style="height:36px;border-radius:8px"></div>
         </div>
       </div>`).join('');
   }
@@ -241,7 +227,7 @@
     products.forEach(p => { _productCache[p.id] = p; });
 
     document.getElementById('product-grid').innerHTML = products
-      .map((p, i) => `<div>${productCardHTML(p, currentPlatform)}</div>`)
+      .map(p => productCardHTML(p, currentPlatform))
       .join('');
   }
 

@@ -1,38 +1,19 @@
-FROM python:3.11-slim
+# Use the official Microsoft Playwright image which includes all required OS dependencies
+FROM mcr.microsoft.com/playwright/python:v1.42.0-jammy
 
-# Install system dependencies for Playwright
-RUN apt-get update && apt-get install -y \
-    libglib2.0-0 \
-    libnss3 \
-    libnspr4 \
-    libatk1.0-0 \
-    libatk-bridge2.0-0 \
-    libcups2 \
-    libdrm2 \
-    libxkbcommon0 \
-    libxcomposite1 \
-    libxdamage1 \
-    libxext6 \
-    libxfixes3 \
-    libxrandr2 \
-    libgbm1 \
-    libpango-1.0-0 \
-    libcairo2 \
-    libasound2 \
-    && rm -rf /var/lib/apt/lists/*
-
+# Run everything as root (default for this container) to avoid permission issues
 WORKDIR /app
 
+# Install Python requirements
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Install Playwright browser
-RUN playwright install chromium
+# Copy all project files into the container
+COPY . /app
 
-COPY . .
+# Ensure we are in the correct directory for the server
+WORKDIR /app/backend
 
-# Expose the port (Render uses PORT env var)
-EXPOSE 5000
-
-# Start the server
-CMD ["python", "backend/server.py"]
+# Render dynamically assigns a port to the PORT environment variable
+# The server.py has been updated to read os.environ.get("PORT", 5000)
+CMD ["python", "server.py"]
