@@ -144,6 +144,15 @@
 
   function applyFilters() { loadProducts(); }
 
+  function updateUrl({ search, category, sort }) {
+    const next = new URLSearchParams();
+    if (search) next.set('search', search);
+    if (category) next.set('category', category);
+    if (sort && sort !== 'relevance') next.set('sort', sort);
+    const query = next.toString();
+    window.history.replaceState({}, '', query ? `/products?${query}` : '/products');
+  }
+
   function filterPlat(p) {
     currentPlatform = p;
     document.querySelectorAll('#platFilters .filter-btn').forEach(b => b.classList.remove('active'));
@@ -166,7 +175,10 @@
 
   async function loadProducts(overrides = {}) {
     const sort     = document.getElementById('sortSelect').value;
-    const search   = document.getElementById('searchInput').value.trim();
+    const search   = Object.prototype.hasOwnProperty.call(overrides, 'search')
+      ? String(overrides.search || '').trim()
+      : document.getElementById('searchInput').value.trim();
+    document.getElementById('searchInput').value = search;
 
     const qs = new URLSearchParams({
       sort:     sort,
@@ -175,6 +187,8 @@
       category: currentCat,
       ...overrides
     });
+
+    updateUrl({ search, category: currentCat, sort });
 
     showSkeletons();
 
@@ -192,7 +206,7 @@
 
       // Update result info
       document.getElementById('result-info').textContent =
-        `${data.count} products — sorted using Merge Sort O(n log n)`;
+        `${data.count} product${data.count === 1 ? '' : 's'}${search ? ` for "${search}"` : ''} — sorted using Merge Sort O(n log n)`;
 
       renderGrid(data.products || []);
     } catch(e) {

@@ -72,6 +72,25 @@ def parse_positive_int(value, default=None):
         return default
     return parsed if parsed > 0 else default
 
+def filter_products(products, search="", category=""):
+    filtered = list(products)
+
+    if search:
+        filtered = [
+            p for p in filtered
+            if search in p.get("name", "").lower()
+            or search in p.get("category", "").lower()
+            or search in p.get("description", "").lower()
+        ]
+
+    if category:
+        filtered = [
+            p for p in filtered
+            if p.get("category", "").lower() == category
+        ]
+
+    return filtered
+
 # ── Cart Optimizer ─────────────────────────────────────────────────
 
 def optimize_cart(cart_items, budget=None):
@@ -224,18 +243,18 @@ class SSCOHandler(SimpleHTTPRequestHandler):
 
         q = search if search else (category if category else "laptop")
         products = get_cached_or_scrape(q)
-        
-        if not products:
-            products = list(PRODUCTS)
-            if search:
-                filtered = [
-                    p for p in products
-                    if search in p["name"].lower()
-                    or search in p["category"].lower()
-                ]
-                products = filtered if filtered else list(PRODUCTS)[:8]
-            if category:
-                products = [p for p in products if p["category"].lower() == category]
+
+        filtered_products = filter_products(products or [], search, category)
+        if filtered_products:
+            products = filtered_products
+        else:
+            fallback_products = filter_products(PRODUCTS, search, category)
+            if fallback_products:
+                products = fallback_products
+            elif products:
+                products = products
+            else:
+                products = list(PRODUCTS[:8])
 
         # Add to session cache so /optimize can find it later
         for p in products:
