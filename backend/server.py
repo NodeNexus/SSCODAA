@@ -1,11 +1,3 @@
-"""
-============================================================
- SMART SHOPPING CART OPTIMIZER — Python Backend Server
- Pure Python stdlib: http.server + json
- Serves frontend static files + REST API on port 5000
-============================================================
-"""
-
 import sys
 import os
 import json
@@ -382,8 +374,6 @@ class SSCOHandler(SimpleHTTPRequestHandler):
         # API routes
         if path == "/api/health":
             self._api_health(); return
-        if path == "/api/algorithms":
-            self._api_get_algorithms(); return
         if path == "/api/products":
             self._api_get_products(query); return
         if path == "/api/categories":
@@ -402,8 +392,7 @@ class SSCOHandler(SimpleHTTPRequestHandler):
             "":           "/index.html",
             "/products":  "/products.html",
             "/cart":      "/cart.html",
-            "/compare":   "/compare.html",
-            "/algorithms":"/algorithms.html"
+            "/compare":   "/compare.html"
         }
         if path in clean_routes:
             self.path = clean_routes[path]
@@ -444,12 +433,7 @@ if __name__ == "__main__":
     PORT   = int(os.environ.get("PORT", 5000))
     server = ThreadingHTTPServer(("0.0.0.0", PORT), SSCOHandler)
 
-    print("\n" + "="*56)
-    print("  🛒  SMART SHOPPING CART OPTIMIZER — Python Server")
     print(f"  🚀  Running at: http://0.0.0.0:{PORT}")
-    print("  📊  DAA: MergeSort | Greedy | Knapsack | TSP | MST")
-    print("="*56 + "\n")
-
 
     try:
         server.serve_forever()
