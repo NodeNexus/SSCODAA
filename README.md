@@ -1,19 +1,19 @@
-# 🛒 Smart Shopping Cart Optimizer (DAA Project)
+# 🛒 Smart Shopping Cart Optimizer (SSCO)
 
-A sophisticated full-stack web application designed for analyzing and demonstrating **Design and Analysis of Algorithms (DAA)**. Live internet product data is dynamically scraped using a headless Chromium browser and sorted with deep DAA concepts.
+A full-stack application demonstrating practical implementations of **Design and Analysis of Algorithms (DAA)**. The platform scrapes real-time ecommerce catalog data via headless browser automation and applies algorithmic optimization techniques to solve budget allocation, product ranking, and delivery routing problems.
 
-## 🌟 Features
-- **Live Headless Web Scraping:** Real-time data from platforms like Amazon, Flipkart, Myntra, Snapdeal, and Meesho.
-- **Glassmorphism UI**: High-end light-theme user interface with frosty glass overlays, micro-animations, and dynamic background blobs.
-- **DAA Implementations**:
-  - **Divide & Conquer**: Merge Sort (O(n log n)) for lightning-fast live product sorting.
-  - **Greedy Strategy**: Knapsack algorithms for budget optimization.
-  - **Graph Algorithms**: Traveling Salesperson (TSP) & Kruskal's Minimum Spanning Tree (MST).
-  
+## ⚡ Algorithmic Implementations (DAA)
+
+- **Greedy Strategy (0/1 & Fractional Knapsack):** Solves the constrained budget cart optimization problem to maximize product utility within user price caps.
+- **Divide & Conquer (Merge Sort - O(n log n)):** High-throughput sorting and multi-attribute ranking across scraped price and rating matrices.
+- **Graph Optimization (TSP & Kruskal's MST):** Route and delivery sequence optimization for multi-vendor fulfillment models.
+- **Live Headless Automation:** Real-time product scraping across Amazon, Flipkart, Myntra, Snapdeal, and Meesho via Playwright.
+
 ## 🛠️ Technology Stack
-**Frontend:** Vanilla JS, DOM DOM Manipulation, Modern CSS3 (Glassmorphism & Keyframes).
-**Backend:** Pure native Python `http.server` & standard libraries.
-**Web Automation:** Microsoft Playwright (Python).
+
+- **Frontend:** Vanilla JavaScript (ES6+), Modern CSS3 Glassmorphism UI
+- **Backend:** Python native `http.server` & standard library REST router
+- **Automation Engine:** Microsoft Playwright (Headless Chromium)
 **Architecture:** RESTful GET/POST Routing API.
 
 ---
